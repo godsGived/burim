@@ -1,3 +1,10 @@
+## Use Case Diagram
+
+Burim supports two main user roles: customers and sellers. The diagram shows their core interactions with the platform and the available AI-assisted features.
+
+![Burim usecase diagram](docs/architecture/usecase.png)
+
+
 ## Tech Stack
 
 ### Backend

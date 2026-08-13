@@ -1,36 +1,34 @@
 @startuml
 left to right direction
 
-actor "Покупатель" as Customer
-actor "Продавец" as Seller
+actor Customer
+actor Seller
 
 rectangle "Burim" {
 
-    usecase "Просмотреть каталог" as BrowseCatalog
-    usecase "Найти товар" as SearchProduct
-    usecase "Просмотреть товар" as ViewProduct
-    usecase "Сравнить товары" as CompareProducts
-    usecase "Управлять корзиной" as ManageCart
-    usecase "Оформить заказ" as PlaceOrder
-    usecase "Просмотреть заказы" as ViewOrders
+    usecase "Browse Catalog" as BrowseCatalog
+    usecase "Search Products" as SearchProducts
+    usecase "View Product" as ViewProduct
+    usecase "Compare Products" as CompareProducts
+    usecase "Manage Cart" as ManageCart
+    usecase "Place Order" as PlaceOrder
+    usecase "View Orders" as ViewOrders
 
-    usecase "Получить рекомендации" as GetRecommendations
-    usecase "Задать вопрос\nпо отзывам" as AskAboutReviews
-    usecase "Задать вопрос\nо правилах магазина" as AskAboutRules
+    usecase "Get Recommendations" as GetRecommendations
+    usecase "Ask About Reviews" as AskAboutReviews
+    usecase "Ask About Store Policies" as AskAboutPolicies
 
-    usecase "Выставить товар" as CreateProduct
-    usecase "Редактировать товар" as EditProduct
-    usecase "Управлять остатком" as ManageInventory
+    usecase "List Product" as ListProduct
+    usecase "Edit Product" as EditProduct
+    usecase "Manage Inventory" as ManageInventory
 
-    usecase "Получить предложение\nкатегории" as SuggestCategory
-    usecase "Получить предложение\nхарактеристик" as SuggestAttributes
-    usecase "Получить рекомендацию\nцены" as SuggestPrice
-
-    usecase "Проанализировать отзывы\nпри сравнении" as CompareReviews
+    usecase "Suggest Category" as SuggestCategory
+    usecase "Suggest Attributes" as SuggestAttributes
+    usecase "Recommend Price" as RecommendPrice
 }
 
 Customer --> BrowseCatalog
-Customer --> SearchProduct
+Customer --> SearchProducts
 Customer --> ViewProduct
 Customer --> CompareProducts
 Customer --> ManageCart
@@ -39,20 +37,18 @@ Customer --> ViewOrders
 
 Customer --> GetRecommendations
 Customer --> AskAboutReviews
-Customer --> AskAboutRules
+Customer --> AskAboutPolicies
 
-Seller --> CreateProduct
+Seller --> ListProduct
 Seller --> EditProduct
 Seller --> ManageInventory
 
 Seller --> SuggestCategory
 Seller --> SuggestAttributes
-Seller --> SuggestPrice
+Seller --> RecommendPrice
 
-CompareProducts ..> CompareReviews : <<include>>
-
-CreateProduct ..> SuggestCategory : <<extend>>
-CreateProduct ..> SuggestAttributes : <<extend>>
-CreateProduct ..> SuggestPrice : <<extend>>
+ListProduct ..> SuggestCategory : <<extend>>
+ListProduct ..> SuggestAttributes : <<extend>>
+ListProduct ..> RecommendPrice : <<extend>>
 
 @enduml
