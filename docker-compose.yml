@@ -1,0 +1,15 @@
+services:
+  product-db:
+    image: postgres:16-alpine
+    container_name: burim-product-db
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - product_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  product_postgres_data:
