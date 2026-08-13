@@ -6,6 +6,11 @@ Burim supports two main user roles: customers and sellers. The diagram shows the
 
 ![Burim usecase diagram](docs/architecture/usecase.png)
 
+## Architecture
+
+The diagram below illustrates the core microservices, data storage layers, and AI components powering the platform.
+
+![Burim Architecture Diagram](docs/architecture/architecture.png)
 
 ## Tech Stack
 
