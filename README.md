@@ -1,43 +1,47 @@
-## 🚧 Work in progress
+# Burim
 
-## Use Case Diagram
-
-Burim supports two main user roles: customers and sellers. The diagram shows their core interactions with the platform and the available AI-assisted features.
-
-![Burim usecase diagram](docs/architecture/usecase.png)
+Burim is a microservice-based e-commerce platform with integrated AI features for search, recommendations, and merchant analytics.
 
 ## Architecture
 
-The diagram below illustrates the core microservices, data storage layers, and AI components powering the platform.
+The system is designed as a set of independent microservices with database-per-service isolation:
 
-![Burim Architecture Diagram](docs/architecture/architecture.png)
+- **API Gateway:** Entry point for clients, routing, and token validation.
+- **Product Service:** Manages product catalog, categories, inventory, and reviews.
+- **Cart Service:** Shopping cart management.
+- **Order Service:** Order processing and status tracking.
+- **AI Service:** Handles chat queries, Tool Calling, and RAG vector indexing.
+- **Keycloak:** OAuth2 / OpenID Connect authorization server.
+
+### Inter-Service Communication
+
+- **Synchronous (REST):** Used for real-time user requests (browsing products, cart operations, direct AI chat).
+- **Asynchronous (Apache Kafka):** Used as an event bus (`ProductUpdatedEvent`, `OrderCreatedEvent`) for background processing and updating the AI vector store without blocking main API responses.
+
+![Burim Architecture](docs/architecture/architecture.png)
+
+## AI Integration
+
+- **Tool Calling (REST):** AI Service queries Product Service directly for live stock and pricing data.
+- **RAG (Retrieval-Augmented Generation):** Semantic search using product descriptions, reviews, and documentation.
+- **Event-Driven Indexing:** Product and order changes are consumed from Kafka topics and written to the vector store (`PGVector`).
 
 ## Tech Stack
 
-### Backend
-- Java 21
-- Spring Boot
-- Spring Cloud
+### Implemented
+- **Language:** Java 21
+- **Framework:** Spring Boot 3
+- **Data:** Spring Data JPA, Hibernate, Flyway
+- **Database:** PostgreSQL
+- **Environment:** Docker, Docker Compose
+- **Build Tool:** Maven
 
-### Data & Messaging
-- PostgreSQL
-- Redis
-- Apache Kafka
+### Planned
+- **Gateway & Security:** Spring Cloud Gateway, Keycloak
+- **Messaging & Cache:** Apache Kafka, Redis
+- **AI Engine:** Spring AI, PGVector
+- **Observability:** Prometheus, Grafana, Zipkin
 
-### Security
-- Keycloak
+## Use Cases
 
-### AI
-- Spring AI
-- RAG
-- Function Calling
-
-### Observability
-- Actuator
-- Prometheus
-- Grafana
-- Zipkin
-- Resilience4j
-
-### Infrastructure
-- Docker
+![Burim Use Case Diagram](docs/architecture/usecase.png)
