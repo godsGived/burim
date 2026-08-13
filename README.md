@@ -1,3 +1,5 @@
+## 🚧 Work in progress
+
 ## Use Case Diagram
 
 Burim supports two main user roles: customers and sellers. The diagram shows their core interactions with the platform and the available AI-assisted features.
@@ -34,5 +36,3 @@ Burim supports two main user roles: customers and sellers. The diagram shows the
 
 ### Infrastructure
 - Docker
-
-🚧 Work in progress
