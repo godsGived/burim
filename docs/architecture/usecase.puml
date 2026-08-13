@@ -1,0 +1,58 @@
+@startuml
+left to right direction
+
+actor "Покупатель" as Customer
+actor "Продавец" as Seller
+
+rectangle "Burim" {
+
+    usecase "Просмотреть каталог" as BrowseCatalog
+    usecase "Найти товар" as SearchProduct
+    usecase "Просмотреть товар" as ViewProduct
+    usecase "Сравнить товары" as CompareProducts
+    usecase "Управлять корзиной" as ManageCart
+    usecase "Оформить заказ" as PlaceOrder
+    usecase "Просмотреть заказы" as ViewOrders
+
+    usecase "Получить рекомендации" as GetRecommendations
+    usecase "Задать вопрос\nпо отзывам" as AskAboutReviews
+    usecase "Задать вопрос\nо правилах магазина" as AskAboutRules
+
+    usecase "Выставить товар" as CreateProduct
+    usecase "Редактировать товар" as EditProduct
+    usecase "Управлять остатком" as ManageInventory
+
+    usecase "Получить предложение\nкатегории" as SuggestCategory
+    usecase "Получить предложение\nхарактеристик" as SuggestAttributes
+    usecase "Получить рекомендацию\nцены" as SuggestPrice
+
+    usecase "Проанализировать отзывы\nпри сравнении" as CompareReviews
+}
+
+Customer --> BrowseCatalog
+Customer --> SearchProduct
+Customer --> ViewProduct
+Customer --> CompareProducts
+Customer --> ManageCart
+Customer --> PlaceOrder
+Customer --> ViewOrders
+
+Customer --> GetRecommendations
+Customer --> AskAboutReviews
+Customer --> AskAboutRules
+
+Seller --> CreateProduct
+Seller --> EditProduct
+Seller --> ManageInventory
+
+Seller --> SuggestCategory
+Seller --> SuggestAttributes
+Seller --> SuggestPrice
+
+CompareProducts ..> CompareReviews : <<include>>
+
+CreateProduct ..> SuggestCategory : <<extend>>
+CreateProduct ..> SuggestAttributes : <<extend>>
+CreateProduct ..> SuggestPrice : <<extend>>
+
+@enduml
