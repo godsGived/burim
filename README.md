@@ -1,47 +1,95 @@
 # Burim
 
-Burim is a microservice-based e-commerce platform with integrated AI features for search, recommendations, and merchant analytics.
+> [!IMPORTANT]
+> **Active Work in Progress / Target Architecture**  
+> This project is currently in active development. The architecture diagrams and component specifications below represent the **target system design** being implemented incrementally.
 
-## Architecture
+---
 
-The system is designed as a set of independent microservices with database-per-service isolation:
+Burim is a microservice-based e-commerce platform with AI-assisted
+product discovery, comparison and seller tools.
 
-- **API Gateway:** Entry point for clients, routing, and token validation.
-- **Product Service:** Manages product catalog, categories, inventory, and reviews.
-- **Cart Service:** Shopping cart management.
-- **Order Service:** Order processing and status tracking.
-- **AI Service:** Handles chat queries, Tool Calling, and RAG vector indexing.
-- **Keycloak:** OAuth2 / OpenID Connect authorization server.
+## ✨ What makes Burim different?
 
-### Inter-Service Communication
+- 🤖 AI-powered product comparison
+- 💬 Questions about product reviews using RAG
+- 🏷️ AI-assisted product listing for sellers
+- 💰 AI-powered price recommendations
+- 🔎 Tool Calling for live marketplace data
+- 📚 RAG over reviews and marketplace documentation
 
-- **Synchronous (REST):** Used for real-time user requests (browsing products, cart operations, direct AI chat).
-- **Asynchronous (Apache Kafka):** Used as an event bus (`ProductUpdatedEvent`, `OrderCreatedEvent`) for background processing and updating the AI vector store without blocking main API responses.
+## 🏗️ Architecture
 
-![Burim Architecture](docs/architecture/architecture.png)
+![Architecture](docs/architecture/architecture.png)
 
-## AI Integration
+Burim uses independent services with database-per-service isolation.
 
-- **Tool Calling (REST):** AI Service queries Product Service directly for live stock and pricing data.
-- **RAG (Retrieval-Augmented Generation):** Semantic search using product descriptions, reviews, and documentation.
-- **Event-Driven Indexing:** Product and order changes are consumed from Kafka topics and written to the vector store (`PGVector`).
+| Service | Responsibility |
+|---|---|
+| **API Gateway** | Entry point and request routing |
+| **Product Service** | Products, categories, inventory and reviews |
+| **Cart Service** | Shopping cart |
+| **Order Service** | Orders and order status |
+| **AI Service** | LLM integration, Tool Calling and RAG |
 
-## Tech Stack
+### Communication
 
-### Implemented
-- **Language:** Java 21
-- **Framework:** Spring Boot 3
-- **Data:** Spring Data JPA, Hibernate, Flyway
-- **Database:** PostgreSQL
-- **Environment:** Docker, Docker Compose
-- **Build Tool:** Maven
+- **REST** — synchronous requests requiring an immediate response
+- **Kafka** — asynchronous domain events and background processing
+- **Redis** — cart state
+- **PostgreSQL** — persistent service data
+- **PGVector** — vector embeddings and semantic search
 
-### Planned
-- **Gateway & Security:** Spring Cloud Gateway, Keycloak
-- **Messaging & Cache:** Apache Kafka, Redis
-- **AI Engine:** Spring AI, PGVector
-- **Observability:** Prometheus, Grafana, Zipkin
+## 🤖 AI
 
-## Use Cases
+The AI Service is built around Spring AI.
 
-![Burim Use Case Diagram](docs/architecture/usecase.png)
+**Tool Calling**
+
+AI can request live marketplace data through tools exposed by
+the Product Service.
+
+**RAG**
+
+Two knowledge sources are planned:
+
+- product reviews
+- marketplace documentation
+
+This enables queries such as:
+
+> "What do customers complain about most in this laptop?"
+
+> "Compare these three products based on their reviews."
+
+## 📐 Use Cases
+
+![Use Case Diagram](docs/architecture/usecase.png)
+
+## 🛠️ Tech Stack
+
+**Backend**
+
+Java 21 · Spring Boot · Spring Cloud · Spring Data JPA · Hibernate · Flyway
+
+**Data & Messaging**
+
+PostgreSQL · Redis · Apache Kafka · PGVector
+
+**AI**
+
+Spring AI · RAG · Function Calling
+
+**Security & Observability**
+
+Keycloak · Actuator · Prometheus · Grafana · Zipkin · Resilience4j
+
+**Infrastructure**
+
+Docker · Docker Compose
+
+## 🚧 Project Status
+
+Currently implementing the **Product Service**.
+
+The remaining services and AI capabilities will be added incrementally.
