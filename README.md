@@ -1,8 +1,10 @@
 # Burim
 
-> AI-powered marketplace built with Java & Spring.
+> [!IMPORTANT]
+> **Active Work in Progress / Target Architecture**  
+> This project is currently in active development. The architecture diagrams and component specifications below represent the **target system design** being implemented incrementally.
 
-🚧 **Work in progress**
+---
 
 Burim is a microservice-based e-commerce platform with AI-assisted
 product discovery, comparison and seller tools.
