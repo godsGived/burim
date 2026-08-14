@@ -1,9 +1,9 @@
 package com.burim.product_service.dto;
-
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public record ProductRequest(
         @NotNull(message = "Name is required")
@@ -16,9 +16,9 @@ public record ProductRequest(
         BigDecimal price,
 
         @NotNull(message = "Category is required")
-        String category,
+        Long categoryId,
 
-        String brand,
+        Long brandId,
 
         @NotNull(message = "Stock is required")
         @PositiveOrZero(message = "Stock should be greater or equal to 0")

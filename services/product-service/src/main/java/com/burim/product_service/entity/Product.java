@@ -21,8 +21,14 @@ public class Product {
     private String name;
     private String description;
     private BigDecimal price;
-    private String category;
-    private String brand;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
     private Integer stock;
 
     @CreationTimestamp

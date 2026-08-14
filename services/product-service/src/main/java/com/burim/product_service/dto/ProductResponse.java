@@ -8,9 +8,10 @@ public record ProductResponse(
         String name,
         String description,
         BigDecimal price,
-        String category,
-        String brand,
+        Long categoryId,
+        Long brandId,
         Integer stock,
         OffsetDateTime createdAt
 ) {
+
 }
