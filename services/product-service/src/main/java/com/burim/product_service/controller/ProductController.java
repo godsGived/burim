@@ -28,8 +28,8 @@ public class ProductController {
     }
 
     @PostMapping()
-    @Valid
-    public ProductResponse createProduct(@RequestBody ProductRequest request){
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductResponse createProduct(@Valid @RequestBody ProductRequest request){
         return productService.createProduct(request);
     }
 
