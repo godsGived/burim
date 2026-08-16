@@ -1,9 +1,9 @@
 package com.burim.product_service.dto;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 public record ProductRequest(
         @NotNull(message = "Name is required")
