@@ -11,5 +11,18 @@ services:
     volumes:
       - product_postgres_data:/var/lib/postgresql/data
 
+  review-db:
+    image: postgres:16-alpine
+    container_name: burim-review-db
+    environment:
+      POSTGRES_DB: review_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - review_postgres_data:/var/lib/postgresql/data
+
 volumes:
   product_postgres_data:
+  review_postgres_data:
