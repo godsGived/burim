@@ -30,6 +30,12 @@ public class Product {
     private Brand brand;
     private Integer stock;
 
+    @Column(nullable = false)
+    private BigDecimal rating = BigDecimal.ZERO;
+
+    @Column(name = "reviews_count", nullable = false)
+    private Integer reviewsCount = 0;
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 }

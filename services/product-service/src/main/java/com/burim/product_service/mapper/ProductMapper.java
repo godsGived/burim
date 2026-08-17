@@ -17,6 +17,8 @@ public class ProductMapper {
                 product.getCategory().getId(),
                 product.getBrand().getId(),
                 product.getStock(),
+                product.getRating(),
+                product.getReviewsCount(),
                 product.getCreatedAt()
         );
     }

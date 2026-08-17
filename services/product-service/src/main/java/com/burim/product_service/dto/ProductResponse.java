@@ -11,6 +11,8 @@ public record ProductResponse(
         Long categoryId,
         Long brandId,
         Integer stock,
+        BigDecimal rating,
+        Integer reviewsCount,
         OffsetDateTime createdAt
 ) {
 
