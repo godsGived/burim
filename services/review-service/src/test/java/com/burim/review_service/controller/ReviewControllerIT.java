@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 public class ReviewControllerIT extends BaseIntegrationTest {
 
@@ -43,7 +43,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
 
         // Act
         var jsonResponse = mockMvc.perform(post("/api/v1/reviews")
-                        .header("X-User-Id", 12L)
+                        .with(jwt().jwt(builder -> builder.subject("user-123")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reviewRequest)))
                 .andDo(print())
@@ -64,7 +64,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
         assertThat(review).isPresent();
         assertThat(review.get()).satisfies(r -> {
                     assertThat(r.getProductId()).isEqualTo(1L);
-                    assertThat(r.getUserId()).isEqualTo(12L);
+                    assertThat(r.getUserId()).isEqualTo("user-123");
                     assertThat(r.getTitle()).isEqualTo("Everything's good!");
                     assertThat(r.getCreatedAt()).isNotNull();
                     assertThat(r.getUpdatedAt()).isNotNull();
@@ -76,7 +76,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
     void createOneMoreReview_whenRequestIsValid_ShouldReturn409AndDoesNotSave() throws Exception{
         // Arrange
         Review review = Review.builder()
-                .userId(12L)
+                .userId("user-123")
                 .productId(1L)
                 .rating(3)
                 .title("Test title")
@@ -96,7 +96,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
 
         // Act
         mockMvc.perform(post("/api/v1/reviews")
-                        .header("X-User-Id", 12L)
+                        .with(jwt().jwt(builder -> builder.subject("user-123")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reviewRequest)))
                 .andDo(print())
@@ -114,7 +114,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
     void deleteReview_whenUserIsNotOwner_ShouldReturn403_AndDoesNotDelete() throws Exception{
         // Arrange
         Review review = Review.builder()
-                .userId(12L)
+                .userId("user-123")
                 .productId(1L)
                 .rating(3)
                 .title("Test title")
@@ -125,14 +125,14 @@ public class ReviewControllerIT extends BaseIntegrationTest {
 
         // Act
         mockMvc.perform(delete("/api/v1/reviews/" + saverReview.getId())
-                        .header("X-User-Id", 13L)
+                        .with(jwt().jwt(builder -> builder.subject("user-124")))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("You are not allowed to delete this review"));
 
         // Assert
-        var userReview = reviewRepository.findAllByUserId(12L);
+        var userReview = reviewRepository.findAllByUserId("user-123");
 
         assertThat(userReview).hasSize(1);
     }
@@ -151,7 +151,7 @@ public class ReviewControllerIT extends BaseIntegrationTest {
 
         // Act
         var jsonResponse = mockMvc.perform(post("/api/v1/reviews")
-                        .header("X-User-Id", 12L)
+                        .with(jwt().jwt(builder -> builder.subject("user-123")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reviewRequest)))
                 .andDo(print())

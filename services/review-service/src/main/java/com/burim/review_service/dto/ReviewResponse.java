@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 
 public record ReviewResponse(
         Long id,
-        Long userId,
+        String userId,
         Long productId,
         Integer rating,
         String title,

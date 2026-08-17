@@ -20,7 +20,7 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    Long userId;
+    String userId;
     Long productId;
     Integer rating;
     String title;
@@ -44,7 +44,7 @@ public class Review {
         this.disadvantages = disadvantages;
     }
 
-    public boolean isOwnedBy(Long userId) {
+    public boolean isOwnedBy(String userId) {
         return Objects.equals(this.userId, userId);
     }
 

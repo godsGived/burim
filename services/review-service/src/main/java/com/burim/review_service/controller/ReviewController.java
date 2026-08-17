@@ -7,6 +7,8 @@ import com.burim.review_service.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +23,9 @@ public class ReviewController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ReviewResponse createReview(
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateReviewRequest reviewRequest) {
+        String userId = jwt.getSubject();
         return reviewService.createReview(userId, reviewRequest);
     }
 
@@ -33,8 +36,9 @@ public class ReviewController {
 
     @GetMapping("/my")
     public List<ReviewResponse> getUserReviews(
-            @RequestHeader("X-User-Id") Long userId
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        String userId = jwt.getSubject();
         return reviewService.getUserReviews(userId);
     }
 
@@ -46,9 +50,10 @@ public class ReviewController {
     @PutMapping("/{id}")
     public ReviewResponse updateReview(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody UpdateReviewRequest request
     ) {
+        String userId = jwt.getSubject();
         return reviewService.updateReview(id, userId, request);
     }
 
@@ -56,8 +61,9 @@ public class ReviewController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteReview(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") Long userId
+            @AuthenticationPrincipal Jwt jwt
     ) {
+        String userId = jwt.getSubject();
         reviewService.deleteReview(id, userId);
     }
 }

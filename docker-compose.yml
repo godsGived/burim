@@ -1,4 +1,13 @@
 services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: burim-keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
   product-db:
     image: postgres:16-alpine
     container_name: burim-product-db

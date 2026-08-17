@@ -24,7 +24,7 @@ public class ReviewService {
 
 
     @Transactional
-    public ReviewResponse createReview(Long userId, CreateReviewRequest reviewRequest) {
+    public ReviewResponse createReview(String userId, CreateReviewRequest reviewRequest) {
         if (reviewRepository.existsByUserIdAndProductId(userId, reviewRequest.productId())) {
             throw new ReviewAlreadyExistsException("Review already exists for product: " + reviewRequest.productId());
         }
@@ -39,7 +39,7 @@ public class ReviewService {
                 .toList();
     }
 
-    public List<ReviewResponse> getUserReviews(Long userId) {
+    public List<ReviewResponse> getUserReviews(String userId) {
         return reviewRepository.findAllByUserId(userId).stream()
                 .map(reviewMapper::toResponse)
                 .toList();
@@ -53,7 +53,7 @@ public class ReviewService {
 
 
     @Transactional
-    public ReviewResponse updateReview(Long id, Long userId, UpdateReviewRequest request) {
+    public ReviewResponse updateReview(Long id, String userId, UpdateReviewRequest request) {
         var review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ReviewNotFoundException("Review not found with id: " + id));
 
@@ -74,7 +74,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void deleteReview(Long id, Long userId) {
+    public void deleteReview(Long id, String userId) {
         var review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ReviewNotFoundException("Review not found with id: " + id));
         if (!review.isOwnedBy(userId)) {
