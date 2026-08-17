@@ -3,6 +3,7 @@ package com.burim.review_service.service;
 import com.burim.review_service.dto.CreateReviewRequest;
 import com.burim.review_service.dto.ReviewResponse;
 import com.burim.review_service.dto.UpdateReviewRequest;
+import com.burim.review_service.dto.event.ReviewEvent;
 import com.burim.review_service.exceptions.AccessDeniedException;
 import com.burim.review_service.exceptions.ReviewAlreadyExistsException;
 import com.burim.review_service.exceptions.ReviewNotFoundException;
@@ -21,6 +22,7 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewMapper reviewMapper;
+    private final ReviewEventProducer reviewEventProducer;
 
 
     @Transactional
@@ -30,6 +32,14 @@ public class ReviewService {
         }
         var review = reviewMapper.toReview(userId, reviewRequest);
         var savedReview = reviewRepository.saveAndFlush(review);
+
+        reviewEventProducer.sendReviewEvent(ReviewEvent.created(
+                savedReview.getId(),
+                savedReview.getProductId(),
+                savedReview.getRating(),
+                savedReview.getVersion()
+        ));
+
         return reviewMapper.toResponse(savedReview);
     }
 
@@ -70,6 +80,14 @@ public class ReviewService {
         );
 
         var updatedReview = reviewRepository.saveAndFlush(review);
+
+        reviewEventProducer.sendReviewEvent(ReviewEvent.updated(
+                updatedReview.getId(),
+                updatedReview.getProductId(),
+                updatedReview.getRating(),
+                updatedReview.getVersion()
+        ));
+
         return reviewMapper.toResponse(updatedReview);
     }
 
@@ -81,5 +99,11 @@ public class ReviewService {
             throw new AccessDeniedException("You are not allowed to delete this review");
         }
         reviewRepository.delete(review);
+
+        reviewEventProducer.sendReviewEvent(ReviewEvent.deleted(
+                review.getId(),
+                review.getProductId(),
+                review.getVersion() + 1
+        ));
     }
 }

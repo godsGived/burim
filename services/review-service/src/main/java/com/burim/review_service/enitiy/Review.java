@@ -28,6 +28,9 @@ public class Review {
     String advantages;
     String disadvantages;
 
+    @Version
+    private Long version;
+
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
     OffsetDateTime createdAt;
