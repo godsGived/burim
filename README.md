@@ -4,6 +4,8 @@
 > **Active Work in Progress / Target Architecture**  
 > This project is currently in active development. The architecture diagrams and component specifications below represent the **target system design** being implemented incrementally.
 
+[![CI Pipeline](https://github.com/godsGived/burim/actions/workflows/ci.yml/badge.svg)](https://github.com/godsGived/burim/actions/workflows/ci.yml)
+
 ---
 
 Burim is a microservice-based e-commerce platform with AI-assisted
@@ -27,7 +29,8 @@ Burim uses independent services with database-per-service isolation.
 | Service | Responsibility |
 |---|---|
 | **API Gateway** | Entry point and request routing |
-| **Product Service** | Products, categories, inventory and reviews |
+| **Product Service** | Products, categories, inventory management |
+| **Review Service** | Product ratings, customer reviews, moderation, and event publishing |
 | **Cart Service** | Shopping cart |
 | **Order Service** | Orders and order status |
 | **AI Service** | LLM integration, Tool Calling and RAG |
@@ -35,7 +38,7 @@ Burim uses independent services with database-per-service isolation.
 ### Communication
 
 - **REST** — synchronous requests requiring an immediate response
-- **Kafka** — asynchronous domain events and background processing
+- **Kafka** — asynchronous domain events and background processing (e.g. review updates, vector indexation)
 - **Redis** — cart state
 - **PostgreSQL** — persistent service data
 - **PGVector** — vector embeddings and semantic search
@@ -47,7 +50,7 @@ The AI Service is built around Spring AI.
 **Tool Calling**
 
 AI can request live marketplace data through tools exposed by
-the Product Service.
+the Product Service and Review Service.
 
 **RAG**
 
@@ -82,14 +85,16 @@ Spring AI · RAG · Function Calling
 
 **Security & Observability**
 
-Keycloak · Actuator · Prometheus · Grafana · Zipkin · Resilience4j
+Keycloak (OAuth2 / OpenID Connect / JWT) · Actuator · Prometheus · Grafana · Zipkin · Resilience4j
 
-**Infrastructure**
+**Infrastructure & CI/CD**
 
-Docker · Docker Compose
+Docker · Docker Compose · Testcontainers · GitHub Actions
 
 ## 🚧 Project Status
 
-Currently implementing the **Product Service**.
+Currently implemented / in progress:
+- 🔄 **Review Service** — Core CRUD, Flyway migrations, Keycloak JWT auth, and Testcontainers integration tests completed; **Kafka event producer** (events on review creation/updates for AI indexing and stats) in progress.
+- 🔄 **Product Service** — In development.
 
 The remaining services and AI capabilities will be added incrementally.
