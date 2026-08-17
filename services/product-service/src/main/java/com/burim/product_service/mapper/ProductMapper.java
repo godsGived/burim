@@ -5,6 +5,9 @@ import com.burim.product_service.dto.ProductResponse;
 import com.burim.product_service.entity.Product;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Component
 public class ProductMapper {
 
@@ -29,6 +32,8 @@ public class ProductMapper {
                 .description(request.description())
                 .price(request.price())
                 .stock(request.stock())
+                .rating(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .reviewsCount(0)
                 .build();
     }
 }

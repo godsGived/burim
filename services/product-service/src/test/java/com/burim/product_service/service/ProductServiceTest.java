@@ -51,7 +51,7 @@ class ProductServiceTest {
     void getProductById_WhenProductExists_ShouldReturnProductResponse(){
         Long id = 1L;
         var product = Product.builder().id(id).name("MacBook").build();
-        var expectedResponse = new ProductResponse(id, "MacBook", null, null, null, null, 0, null);
+        var expectedResponse = new ProductResponse(id, "MacBook", null, null, null, null, 0, null, null, null);
 
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
         when(productMapper.toResponse(product)).thenReturn(expectedResponse);
