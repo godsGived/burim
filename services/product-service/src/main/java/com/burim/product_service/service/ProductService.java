@@ -1,20 +1,22 @@
 package com.burim.product_service.service;
 
-import com.burim.product_service.dto.ProductRequest;
-import com.burim.product_service.dto.ProductResponse;
+import com.burim.product_service.dto.*;
 import com.burim.product_service.entity.Product;
 import com.burim.product_service.exceptions.BrandNotFoundException;
 import com.burim.product_service.exceptions.CategoryNotFoundException;
+import com.burim.product_service.exceptions.InsufficientStockException;
 import com.burim.product_service.exceptions.ProductNotFoundException;
 import com.burim.product_service.mapper.ProductMapper;
 import com.burim.product_service.repository.BrandRepository;
 import com.burim.product_service.repository.CategoryRepository;
 import com.burim.product_service.repository.ProductRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +38,7 @@ public class ProductService {
     public ProductResponse getProductById(Long id){
         return productRepository.findById(id)
                 .map(productMapper::toResponse)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new ProductNotFoundException(id));
     }
 
     @Transactional
@@ -59,8 +61,68 @@ public class ProductService {
     @Transactional
     public void deleteProduct(Long id){
         Product product = productRepository.findById(id)
-                        .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+                        .orElseThrow(() -> new ProductNotFoundException(id));
         productRepository.delete(product);
     }
 
+    @Transactional
+    public List<ProductStockSnapshot> deductStock(@Valid List<DeductStockRequest> requests) {
+        Map<Long, Integer> requestHM = requests.stream()
+                .collect(Collectors.toMap(
+                        DeductStockRequest::productId,
+                        DeductStockRequest::quantity,
+                        Integer::sum
+                ));
+
+        List<Long> productIds = requestHM.keySet().stream()
+                .sorted()
+                .toList();
+
+        List<Product> products = productRepository.findAllByIdIn(productIds);
+
+        if (products.size() != productIds.size()) {
+            Set<Long> foundIds = products.stream()
+                    .map(Product::getId)
+                    .collect(Collectors.toSet());
+
+            Set<Long> missingIds = new HashSet<>(productIds);
+            missingIds.removeAll(foundIds);
+
+            throw new ProductNotFoundException(missingIds);
+        }
+
+        List<StockShortage> shortages = new ArrayList<>();
+
+        for (Product product : products) {
+            int requested = requestHM.get(product.getId());
+            int available = product.getStock();
+
+            if (available < requested) {
+                shortages.add(new StockShortage(
+                        product.getId(),
+                        product.getName(),
+                        requested,
+                        available
+                ));
+            }
+        }
+
+        if (!shortages.isEmpty()) {
+            throw new InsufficientStockException(shortages);
+        }
+
+        return products.stream()
+                .map(product -> {
+                    int requestedQty = requestHM.get(product.getId());
+                    product.setStock(product.getStock() - requestedQty);
+
+                    return new ProductStockSnapshot(
+                            product.getId(),
+                            product.getName(),
+                            product.getPrice(),
+                            requestedQty
+                    );
+                })
+                .toList();
+    }
 }

@@ -5,6 +5,7 @@ import com.burim.product_service.dto.ProductResponse;
 import com.burim.product_service.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,10 +13,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProductController {
 
-    private ProductService productService;
+    private final ProductService productService;
 
     @GetMapping()
     public List<ProductResponse> getAllProducts(){
