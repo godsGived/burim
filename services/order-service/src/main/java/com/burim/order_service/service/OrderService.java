@@ -8,10 +8,10 @@ import com.burim.order_service.entity.OrderStatus;
 import com.burim.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,36 +20,55 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductServiceClient productServiceClient;
 
-    @Transactional
     public OrderResponse createOrder(String userId, CreateOrderRequest request) {
-        List<DeductStockRequest> deductStockRequests = request.items().stream()
+        UUID operationId = UUID.randomUUID();
+
+        List<DeductStockRequest> deductRequests = request.items().stream()
                 .map(r -> new DeductStockRequest(r.productId(), r.quantity()))
                 .toList();
 
-        List<ProductStockSnapshot> stockResponse = productServiceClient.deductStock(deductStockRequests);
+        List<ProductStockSnapshot> stockResponse = productServiceClient.reserveStock(operationId, deductRequests);
 
-        BigDecimal totalAmount = stockResponse.stream()
-                .map(s -> s.price().multiply(BigDecimal.valueOf(s.quantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        try {
+            BigDecimal totalAmount = stockResponse.stream()
+                    .map(s -> s.price().multiply(BigDecimal.valueOf(s.quantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Order order = Order.builder()
-                .status(OrderStatus.PENDING)
-                .userId(userId)
-                .totalAmount(totalAmount)
-                .build();
+            Order order = Order.builder()
+                    .status(OrderStatus.PENDING)
+                    .userId(userId)
+                    .totalAmount(totalAmount)
+                    .build();
 
-        List<OrderItem> orderItems = stockResponse.stream()
-                .map(s -> OrderItem.builder()
-                        .productId(s.productId())
-                        .productName(s.productName())
-                        .unitPrice(s.price())
-                        .quantity(s.quantity())
-                        .build())
+            List<OrderItem> orderItems = stockResponse.stream()
+                    .map(s -> OrderItem.builder()
+                            .productId(s.productId())
+                            .productName(s.productName())
+                            .unitPrice(s.price())
+                            .quantity(s.quantity())
+                            .build())
+                    .toList();
+
+            order.addItems(orderItems);
+
+            Order savedOrder = orderRepository.save(order);
+
+            return mapToResponse(savedOrder);
+
+        } catch (Exception ex) {
+            productServiceClient.releaseReservation(operationId);
+            throw ex;
+        }
+    }
+
+    private OrderResponse mapToResponse(Order order) {
+        List<OrderItemResponse> itemResponses = order.getItems().stream()
+                .map(item -> new OrderItemResponse(
+                        item.getProductId(),
+                        item.getProductName(),
+                        item.getUnitPrice(),
+                        item.getQuantity()))
                 .toList();
-
-        order.addItems(orderItems);
-
-        order = orderRepository.saveAndFlush(order);
 
         return new OrderResponse(
                 order.getId(),
@@ -57,13 +76,7 @@ public class OrderService {
                 order.getStatus(),
                 order.getTotalAmount(),
                 order.getCreatedAt(),
-                orderItems.stream()
-                        .map(item -> new OrderItemResponse(
-                                item.getProductId(),
-                                item.getProductName(),
-                                item.getUnitPrice(),
-                                item.getQuantity()))
-                        .toList()
+                itemResponses
         );
     }
 }

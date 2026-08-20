@@ -2,6 +2,8 @@ package com.burim.product_service.service;
 
 import com.burim.product_service.dto.*;
 import com.burim.product_service.entity.Product;
+import com.burim.product_service.entity.ReservationStatus;
+import com.burim.product_service.entity.StockReservation;
 import com.burim.product_service.exceptions.BrandNotFoundException;
 import com.burim.product_service.exceptions.CategoryNotFoundException;
 import com.burim.product_service.exceptions.InsufficientStockException;
@@ -10,6 +12,7 @@ import com.burim.product_service.mapper.ProductMapper;
 import com.burim.product_service.repository.BrandRepository;
 import com.burim.product_service.repository.CategoryRepository;
 import com.burim.product_service.repository.ProductRepository;
+import com.burim.product_service.repository.StockReservationRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class ProductService {
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final StockReservationRepository reservationRepository;
 
     public List<ProductResponse> getAllProducts(){
         return productRepository.findAll()
@@ -66,7 +70,7 @@ public class ProductService {
     }
 
     @Transactional
-    public List<ProductStockSnapshot> deductStock(@Valid List<DeductStockRequest> requests) {
+    private List<ProductStockSnapshot> deductStock(@Valid List<DeductStockRequest> requests) {
         Map<Long, Integer> requestHM = requests.stream()
                 .collect(Collectors.toMap(
                         DeductStockRequest::productId,
@@ -124,5 +128,61 @@ public class ProductService {
                     );
                 })
                 .toList();
+    }
+
+    private List<ProductStockSnapshot> getSnapshotsFor(List<DeductStockRequest> items) {
+        List<Long> productIds = items.stream()
+                .map(DeductStockRequest::productId)
+                .toList();
+
+        Map<Long, Product> productMap = productRepository.findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        return items.stream()
+                .map(item -> {
+                    Product product = productMap.get(item.productId());
+                    return new ProductStockSnapshot(
+                            product.getId(),
+                            product.getName(),
+                            product.getPrice(),
+                            item.quantity()
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional
+    public List<ProductStockSnapshot> reserveStock(ReserveStockRequest request) {
+        List<StockReservation> existing = reservationRepository.findAllByOperationId(request.operationId());
+        if (!existing.isEmpty()) {
+            return getSnapshotsFor(request.items());
+        }
+
+        List<ProductStockSnapshot> snapshots = deductStock(request.items());
+
+        List<StockReservation> reservations = request.items().stream()
+                .map(i -> StockReservation.builder()
+                        .operationId(request.operationId())
+                        .productId(i.productId())
+                        .quantity(i.quantity())
+                        .status(ReservationStatus.RESERVED)
+                        .build())
+                .toList();
+        reservationRepository.saveAll(reservations);
+
+        return snapshots;
+    }
+
+    @Transactional
+    public void releaseReservation(UUID operationId) {
+        List<StockReservation> reservations = reservationRepository.findAllByOperationId(operationId);
+
+        for (StockReservation res : reservations) {
+            if (res.getStatus() == ReservationStatus.RELEASED) {
+                continue;
+            }
+            productRepository.increaseStock(res.getProductId(), res.getQuantity());
+            res.setStatus(ReservationStatus.RELEASED);
+        }
     }
 }
