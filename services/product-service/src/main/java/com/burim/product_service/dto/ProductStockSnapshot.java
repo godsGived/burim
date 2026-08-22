@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public record ProductStockSnapshot(
         Long productId,
         String productName,
-        BigDecimal unitPrice,
+        BigDecimal price,
         Integer quantity
 ) {
 }
