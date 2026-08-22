@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: order-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5435/order_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+services:
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8081}
+  cart-service:
+    url: ${CART_SERVICE_URL:http://localhost:8084}

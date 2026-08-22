@@ -1,10 +1,12 @@
 package com.burim.order_service.service;
 
+import com.burim.order_service.client.CartServiceClient;
 import com.burim.order_service.client.ProductServiceClient;
 import com.burim.order_service.dto.*;
 import com.burim.order_service.entity.Order;
 import com.burim.order_service.entity.OrderItem;
 import com.burim.order_service.entity.OrderStatus;
+import com.burim.order_service.exceptions.EmptyCartException;
 import com.burim.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductServiceClient productServiceClient;
+    private final CartServiceClient cartServiceClient;
 
     public OrderResponse createOrder(String userId, CreateOrderRequest request) {
         UUID operationId = UUID.randomUUID();
@@ -59,6 +62,24 @@ public class OrderService {
             productServiceClient.releaseReservation(operationId);
             throw ex;
         }
+    }
+
+    public OrderResponse checkout(String userId) {
+        CartResponse cart = cartServiceClient.getCart(userId);
+
+        if (cart.items() == null || cart.items().isEmpty()) {
+            throw new EmptyCartException("Cannot checkout an empty cart");
+        }
+
+        List<OrderItemRequest> items = cart.items().stream()
+                .map(i -> new OrderItemRequest(i.productId(), i.quantity()))
+                .toList();
+
+        OrderResponse order = createOrder(userId, new CreateOrderRequest(userId, items));
+
+        cartServiceClient.clearCart(userId);
+
+        return order;
     }
 
     private OrderResponse mapToResponse(Order order) {
