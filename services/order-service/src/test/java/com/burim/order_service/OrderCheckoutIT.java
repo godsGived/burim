@@ -3,9 +3,13 @@ package com.burim.order_service;
 import com.burim.order_service.entity.OrderStatus;
 import com.burim.order_service.repository.OrderRepository;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -14,7 +18,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -23,6 +28,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class OrderCheckoutWireMockTest extends BaseIntegrationTest {
+
+    @RegisterExtension
+    static WireMockExtension wiremock = WireMockExtension.newInstance()
+            .options(wireMockConfig().dynamicPort())
+            .build();
+
+    @DynamicPropertySource
+    static void configureDownstreamServices(DynamicPropertyRegistry registry) {
+        registry.add("services.product-service.url", wiremock::baseUrl);
+        registry.add("services.cart-service.url", wiremock::baseUrl);
+    }
 
     @MockitoSpyBean
     private OrderRepository orderRepository;
@@ -95,6 +111,7 @@ class OrderCheckoutWireMockTest extends BaseIntegrationTest {
                         .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                         .withBody("""
                             {
+                                "timestamp": "2026-08-22T12:00:00Z",
                                 "status": 409,
                                 "error": "INSUFFICIENT_STOCK",
                                 "message": "Not enough stock",
@@ -150,7 +167,7 @@ class OrderCheckoutWireMockTest extends BaseIntegrationTest {
                             ]
                         """)));
 
-        wiremock.stubFor(WireMock.post(urlMatching("/api/v1/internal/products/reservations/.*/release"))
+        wiremock.stubFor(WireMock.post(urlPathMatching("/api/v1/internal/products/reservations/[a-f0-9\\-]+/release"))
                 .willReturn(noContent()));
 
         doThrow(new RuntimeException("Database disk failure")).when(orderRepository).save(any());
@@ -159,7 +176,7 @@ class OrderCheckoutWireMockTest extends BaseIntegrationTest {
                         .with(jwt().jwt(b -> b.subject(userId))))
                 .andExpect(status().isInternalServerError());
 
-        wiremock.verify(1, postRequestedFor(urlMatching("/api/v1/internal/products/reservations/.*/release")));
+        wiremock.verify(1, postRequestedFor(urlPathMatching("/api/v1/internal/products/reservations/[a-f0-9\\-]+/release")));
         wiremock.verify(0, deleteRequestedFor(urlEqualTo("/api/v1/internal/cart/" + userId)));
         assertThat(orderRepository.findAll()).isEmpty();
     }
