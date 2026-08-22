@@ -1,3 +1,6 @@
+server:
+  port: 8084
+
 spring:
   application:
     name: cart-service
@@ -5,6 +8,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-
-server:
-  port: 8084
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/burim-realm}
