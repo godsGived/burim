@@ -10,7 +10,7 @@ public class ProductClientConfig {
 
     @Bean
     public RestClient productRestClient(
-            @Value("${services.product.url:http://localhost:8081}") String productUrl) {
+            @Value("${services.product-service.url:http://localhost:8081}") String productUrl) {
         return RestClient.builder()
                 .baseUrl(productUrl)
                 .build();

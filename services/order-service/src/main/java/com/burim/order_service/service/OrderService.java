@@ -75,7 +75,7 @@ public class OrderService {
                 .map(i -> new OrderItemRequest(i.productId(), i.quantity()))
                 .toList();
 
-        OrderResponse order = createOrder(userId, new CreateOrderRequest(userId, items));
+        OrderResponse order = createOrder(userId, new CreateOrderRequest(items));
 
         cartServiceClient.clearCart(userId);
 

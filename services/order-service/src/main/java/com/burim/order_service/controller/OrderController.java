@@ -6,25 +6,29 @@ import com.burim.order_service.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/orders")
+@RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
 
-    @PostMapping()
-    public OrderResponse createOrder(@Valid @RequestBody CreateOrderRequest createOrderRequest){
-        String userId = "123";
-        return orderService.createOrder(userId, createOrderRequest);
-    }
-
     @PostMapping("/checkout")
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse checkout(@RequestHeader("X-User-Id") String userId) {
-        return orderService.checkout(userId);
+    public OrderResponse checkout(@AuthenticationPrincipal Jwt jwt) {
+        return orderService.checkout(jwt.getSubject());
     }
 
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrderResponse createOrder(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateOrderRequest request
+    ) {
+        return orderService.createOrder(jwt.getSubject(), request);
+    }
 }
