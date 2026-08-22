@@ -14,8 +14,10 @@ jobs:
     strategy:
       matrix:
         service:
-          - services/review-service
+          - services/cart-service
+          - services/order-service
           - services/product-service
+          - services/review-service
 
     steps:
       - name: Checkout repository
