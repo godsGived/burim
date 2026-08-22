@@ -8,6 +8,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8180:8080"
+
   product-db:
     image: postgres:16-alpine
     container_name: burim-product-db
@@ -44,6 +45,12 @@ services:
     volumes:
       - order_postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: marketplace-redis
+    ports:
+      - "6379:6379"
+
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka
@@ -76,11 +83,93 @@ services:
     depends_on:
       - kafka
 
-  redis:
-    image: redis:7.2-alpine
-    container_name: marketplace-redis
+
+  product-service:
+    build:
+      context: ./services/product-service
+    container_name: burim-product-service
     ports:
-      - "6379:6379"
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/product_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - product-db
+      - kafka
+
+  review-service:
+    build:
+      context: ./services/review-service
+    container_name: burim-review-service
+    ports:
+      - "8084:8084"
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://review-db:5432/review_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
+    depends_on:
+      - review-db
+      - kafka
+      - keycloak
+
+  cart-service:
+    build:
+      context: ./services/cart-service
+    container_name: burim-cart-service
+    ports:
+      - "8083:8083"
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
+    depends_on:
+      - redis
+      - keycloak
+
+  order-service:
+    build:
+      context: ./services/order-service
+    container_name: burim-order-service
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres_password
+      SERVICES_PRODUCT_SERVICE_URL: http://product-service:8081
+      SERVICES_CART_SERVICE_URL: http://cart-service:8083
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
+    depends_on:
+      - order-db
+      - product-service
+      - cart-service
+      - keycloak
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    container_name: burim-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      SERVICES_PRODUCT_URL: http://burim-product-service:8081
+      SERVICES_ORDER_URL: http://burim-order-service:8082
+      SERVICES_CART_URL: http://burim-cart-service:8083
+      SERVICES_REVIEW_URL: http://burim-review-service:8084
+    depends_on:
+      - product-service
+      - order-service
+      - cart-service
+      - review-service
 
 volumes:
   product_postgres_data:

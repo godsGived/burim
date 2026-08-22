@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            # --- Бизнес-эндпоинты ---
+            - id: product-service
+              uri: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/products/**
+
+            - id: order-service
+              uri: ${SERVICES_ORDER_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/orders/**
+
+            - id: cart-service
+              uri: ${SERVICES_CART_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/cart/**
+
+            - id: review-service
+              uri: ${SERVICES_REVIEW_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/reviews/**
+
+            # --- Проксирование OpenAPI документации микросервисов ---
+            - id: product-docs
+              uri: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+              predicates:
+                - Path=/docs/product-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: order-docs
+              uri: ${SERVICES_ORDER_URL:http://localhost:8082}
+              predicates:
+                - Path=/docs/order-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: cart-docs
+              uri: ${SERVICES_CART_URL:http://localhost:8083}
+              predicates:
+                - Path=/docs/cart-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+            - id: review-docs
+              uri: ${SERVICES_REVIEW_URL:http://localhost:8084}
+              predicates:
+                - Path=/docs/review-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: 1. Product Service
+        url: /docs/product-service/v3/api-docs
+      - name: 2. Order Service
+        url: /docs/order-service/v3/api-docs
+      - name: 3. Cart Service
+        url: /docs/cart-service/v3/api-docs
+      - name: 4. Review Service
+        url: /docs/review-service/v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
