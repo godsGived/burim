@@ -6,12 +6,14 @@ import com.burim.order_service.dto.*;
 import com.burim.order_service.entity.Order;
 import com.burim.order_service.entity.OrderItem;
 import com.burim.order_service.entity.OrderStatus;
+import com.burim.order_service.event.OrderCreatedEvent;
 import com.burim.order_service.exceptions.EmptyCartException;
 import com.burim.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductServiceClient productServiceClient;
     private final CartServiceClient cartServiceClient;
+    private final OrderEventProducer orderEventProducer;
 
     public OrderResponse createOrder(String userId, CreateOrderRequest request) {
         UUID operationId = UUID.randomUUID();
@@ -55,6 +58,21 @@ public class OrderService {
             order.addItems(orderItems);
 
             Order savedOrder = orderRepository.save(order);
+
+            OrderCreatedEvent event = new OrderCreatedEvent(
+                    savedOrder.getId(),
+                    savedOrder.getUserId(),
+                    savedOrder.getTotalAmount(),
+                    savedOrder.getItems().stream()
+                            .map(item -> new OrderCreatedEvent.OrderItemEvent(
+                                    item.getProductId(),
+                                    item.getQuantity(),
+                                    item.getUnitPrice()))
+                            .toList(),
+                    savedOrder.getCreatedAt()
+            );
+
+            orderEventProducer.sendOrderCreatedEvent(event);
 
             return mapToResponse(savedOrder);
 
