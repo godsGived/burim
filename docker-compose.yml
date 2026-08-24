@@ -1,13 +1,56 @@
 services:
-  keycloak:
+  burim-keycloak:
     image: quay.io/keycloak/keycloak:24.0.5
     container_name: burim-keycloak
-    command: start-dev
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8180
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    command:
+      - "start-dev"
     ports:
       - "8180:8080"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qg'
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_NAME: 'local'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka:29092'
+    depends_on:
+      - kafka
+
+  marketplace-redis:
+    image: redis:7.2-alpine
+    container_name: marketplace-redis
+    ports:
+      - "6379:6379"
 
   product-db:
     image: postgres:16-alpine
@@ -45,44 +88,17 @@ services:
     volumes:
       - order_postgres_data:/var/lib/postgresql/data
 
-  redis:
-    image: redis:7.2-alpine
-    container_name: marketplace-redis
-    ports:
-      - "6379:6379"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: kafka
-    ports:
-      - "9092:9092"
+  notification-db:
+    image: postgres:16-alpine
+    container_name: burim-notification-db
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
     ports:
-      - "8085:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    depends_on:
-      - kafka
-
+      - "5436:5432"
+    volumes:
+      - notification_postgres_data:/var/lib/postgresql/data
 
   product-service:
     build:
@@ -112,26 +128,11 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres_password
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
     depends_on:
       - review-db
       - kafka
-      - keycloak
-
-  cart-service:
-    build:
-      context: ./services/cart-service
-    container_name: burim-cart-service
-    ports:
-      - "8083:8083"
-    environment:
-      SERVER_PORT: 8083
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
-    depends_on:
-      - redis
-      - keycloak
+      - burim-keycloak
 
   order-service:
     build:
@@ -144,14 +145,51 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres_password
-      SERVICES_PRODUCT_SERVICE_URL: http://product-service:8081
-      SERVICES_CART_SERVICE_URL: http://cart-service:8083
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/burim
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
+      SERVICES_CART_URL: http://burim-cart-service:8083
+      SERVICES_PRODUCT_URL: http://burim-product-service:8081
     depends_on:
       - order-db
-      - product-service
+      - kafka
+      - burim-keycloak
       - cart-service
-      - keycloak
+      - product-service
+
+  cart-service:
+    build:
+      context: ./services/cart-service
+    container_name: burim-cart-service
+    ports:
+      - "8083:8083"
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATA_REDIS_HOST: marketplace-redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
+    depends_on:
+      - marketplace-redis
+      - burim-keycloak
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    container_name: burim-notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      SERVER_PORT: 8086
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
+      SERVICES_PRODUCT_URL: http://burim-product-service:8081
+    depends_on:
+      - notification-db
+      - kafka
+      - burim-keycloak
+      - product-service
 
   api-gateway:
     build:
@@ -165,13 +203,16 @@ services:
       SERVICES_ORDER_URL: http://burim-order-service:8082
       SERVICES_CART_URL: http://burim-cart-service:8083
       SERVICES_REVIEW_URL: http://burim-review-service:8084
+      SERVICES_NOTIFICATION_URL: http://burim-notification-service:8086
     depends_on:
       - product-service
       - order-service
       - cart-service
       - review-service
+      - notification-service
 
 volumes:
   product_postgres_data:
   review_postgres_data:
   order_postgres_data:
+  notification_postgres_data:

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
@@ -10,7 +10,7 @@ spring:
       server:
         webmvc:
           routes:
-            # --- Бизнес-эндпоинты ---
+            # --- Бизнес-маршруты ---
             - id: product-service
               uri: ${SERVICES_PRODUCT_URL:http://localhost:8081}
               predicates:
@@ -31,7 +31,12 @@ spring:
               predicates:
                 - Path=/api/v1/reviews/**
 
-            # --- Проксирование OpenAPI документации микросервисов ---
+            - id: notification-service
+              uri: ${SERVICES_NOTIFICATION_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/notifications/**
+
+            # --- OpenAPI документация микросервисов ---
             - id: product-docs
               uri: ${SERVICES_PRODUCT_URL:http://localhost:8081}
               predicates:
@@ -60,6 +65,13 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: notification-docs
+              uri: ${SERVICES_NOTIFICATION_URL:http://localhost:8086}
+              predicates:
+                - Path=/docs/notification-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -72,6 +84,8 @@ springdoc:
         url: /docs/cart-service/v3/api-docs
       - name: 4. Review Service
         url: /docs/review-service/v3/api-docs
+      - name: 5. Notification Service
+        url: /docs/notification-service/v3/api-docs
 
 management:
   endpoints:

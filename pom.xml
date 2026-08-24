@@ -15,5 +15,6 @@
         <module>services/cart-service</module>
         <module>services/review-service</module>
         <module>services/api-gateway</module>
+        <module>services/notification-service</module>
     </modules>
 </project>
