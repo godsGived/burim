@@ -24,7 +24,6 @@ public class ReviewService {
     private final ReviewMapper reviewMapper;
     private final ReviewEventProducer reviewEventProducer;
 
-
     @Transactional
     public ReviewResponse createReview(String userId, CreateReviewRequest reviewRequest) {
         if (reviewRepository.existsByUserIdAndProductId(userId, reviewRequest.productId())) {
@@ -33,9 +32,11 @@ public class ReviewService {
         var review = reviewMapper.toReview(userId, reviewRequest);
         var savedReview = reviewRepository.saveAndFlush(review);
 
+        // Передаем userId 3-м параметром
         reviewEventProducer.sendReviewEvent(ReviewEvent.created(
                 savedReview.getId(),
                 savedReview.getProductId(),
+                savedReview.getUserId(),
                 savedReview.getRating(),
                 savedReview.getVersion()
         ));
@@ -61,7 +62,6 @@ public class ReviewService {
         return reviewMapper.toResponse(review);
     }
 
-
     @Transactional
     public ReviewResponse updateReview(Long id, String userId, UpdateReviewRequest request) {
         var review = reviewRepository.findById(id)
@@ -84,6 +84,7 @@ public class ReviewService {
         reviewEventProducer.sendReviewEvent(ReviewEvent.updated(
                 updatedReview.getId(),
                 updatedReview.getProductId(),
+                updatedReview.getUserId(),
                 updatedReview.getRating(),
                 updatedReview.getVersion()
         ));
@@ -103,6 +104,7 @@ public class ReviewService {
         reviewEventProducer.sendReviewEvent(ReviewEvent.deleted(
                 review.getId(),
                 review.getProductId(),
+                review.getUserId(),
                 review.getVersion() + 1
         ));
     }
