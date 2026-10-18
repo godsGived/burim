@@ -31,9 +31,11 @@ public class Product {
     private Integer stock;
 
     @Column(nullable = false)
+    @Builder.Default
     private BigDecimal rating = BigDecimal.ZERO;
 
     @Column(name = "reviews_count", nullable = false)
+    @Builder.Default
     private Integer reviewsCount = 0;
 
     @CreationTimestamp

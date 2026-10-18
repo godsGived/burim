@@ -61,4 +61,22 @@ class ProductServiceTest {
         assertEquals(expectedResponse, response);
     }
 
+    @Test
+    void getProducts_ShouldReturnPagedResponse() {
+        var product = Product.builder().id(1L).name("MacBook").build();
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        var pagedProducts = new org.springframework.data.domain.PageImpl<>(java.util.List.of(product), pageable, 1);
+        var expectedResponse = new ProductResponse(1L, "MacBook", null, null, null, null, 0, null, null, null);
+
+        when(productRepository.findAll(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<Product>>any(), org.mockito.ArgumentMatchers.eq(pageable)))
+                .thenReturn(pagedProducts);
+        when(productMapper.toResponse(product)).thenReturn(expectedResponse);
+
+        var filter = new com.burim.product_service.dto.ProductFilter("MacBook", null, null, null, null, null, null);
+        var result = productService.getProducts(filter, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(expectedResponse, result.getContent().get(0));
+    }
+
 }

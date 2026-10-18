@@ -9,6 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import com.burim.product_service.dto.ProductFilter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.List;
 
 @RestController
@@ -18,9 +24,12 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @GetMapping()
-    public List<ProductResponse> getAllProducts(){
-        return productService.getAllProducts();
+    @GetMapping
+    public Page<ProductResponse> getProducts(
+            ProductFilter filter,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return productService.getProducts(filter, pageable);
     }
 
     @GetMapping("/{id}")

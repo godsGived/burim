@@ -13,8 +13,11 @@ import com.burim.product_service.repository.BrandRepository;
 import com.burim.product_service.repository.CategoryRepository;
 import com.burim.product_service.repository.ProductRepository;
 import com.burim.product_service.repository.StockReservationRepository;
+import com.burim.product_service.specification.ProductSpecifications;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,12 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
     private final StockReservationRepository reservationRepository;
+
+    public Page<ProductResponse> getProducts(ProductFilter filter, Pageable pageable) {
+        var spec = ProductSpecifications.withFilter(filter);
+        return productRepository.findAll(spec, pageable)
+                .map(productMapper::toResponse);
+    }
 
     public List<ProductResponse> getAllProducts(){
         return productRepository.findAll()
