@@ -72,6 +72,29 @@ public class ProductService {
     }
 
     @Transactional
+    public ProductResponse updateProduct(Long id, ProductRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+
+        var category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new CategoryNotFoundException("Category not found with id: " + request.categoryId()));
+
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setStock(request.stock());
+        product.setCategory(category);
+
+        if (request.brandId() != null) {
+            var brand = brandRepository.findById(request.brandId())
+                    .orElseThrow(() -> new BrandNotFoundException("Brand not found with id: " + request.brandId()));
+            product.setBrand(brand);
+        }
+
+        return productMapper.toResponse(productRepository.save(product));
+    }
+
+    @Transactional
     public void deleteProduct(Long id){
         Product product = productRepository.findById(id)
                         .orElseThrow(() -> new ProductNotFoundException(id));
