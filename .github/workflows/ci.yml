@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         service:
           - services/api-gateway
@@ -34,4 +35,14 @@ jobs:
 
       - name: Build and run tests with Maven
         working-directory: ${{ matrix.service }}
-        run: mvn clean verify
+        run: mvn -B clean verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ strategy.job-index }}
+          path: |
+            ${{ matrix.service }}/target/surefire-reports
+            ${{ matrix.service }}/target/failsafe-reports
+          if-no-files-found: ignore
