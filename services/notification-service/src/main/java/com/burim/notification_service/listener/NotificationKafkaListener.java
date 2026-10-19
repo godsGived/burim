@@ -25,22 +25,10 @@ public class NotificationKafkaListener {
         log.info("Received review event type {} for product {}", event.eventType(), event.productId());
 
         if (event.eventType() == ReviewEventType.REVIEW_CREATED) {
-            var productOpt = productServiceClient.getProductById(event.productId());
-
-            String sellerId = productOpt.filter(p -> p.sellerId() != null)
-                    .map(ProductSummaryResponse::sellerId)
-                    .orElse("seller-default");
-
-            String productTitle = productOpt.filter(p -> p.title() != null)
-                    .map(ProductSummaryResponse::title)
+            String productTitle = productServiceClient.getProductById(event.productId())
+                    .map(ProductSummaryResponse::name)
+                    .filter(name -> name != null && !name.isBlank())
                     .orElse("Товар №" + event.productId());
-
-            notificationService.createNotification(
-                    sellerId,
-                    "NEW_PRODUCT_REVIEW",
-                    "Новый отзыв на ваш товар!",
-                    String.format("Покупатель оставил отзыв (%d/5) на товар «%s».", event.rating(), productTitle)
-            );
 
             if (event.userId() != null) {
                 notificationService.createNotification(

@@ -5,6 +5,5 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProductSummaryResponse(
         Long id,
-        String title,
-        String sellerId
+        String name
 ) {}

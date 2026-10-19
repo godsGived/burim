@@ -1,10 +1,8 @@
 package com.burim.notification_service;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class NotificationServiceApplicationTests {
+class NotificationServiceApplicationTests extends BaseIntegrationTest {
 
 	@Test
 	void contextLoads() {
