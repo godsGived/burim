@@ -12,6 +12,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
@@ -28,5 +30,5 @@ public abstract class BaseIntegrationTest {
     @ServiceConnection(name = "redis")
     static final RedisContainer redis = new RedisContainer(
             DockerImageName.parse("redis:7.2-alpine")
-    );
+    ).withStartupTimeout(Duration.ofMinutes(2));
 }

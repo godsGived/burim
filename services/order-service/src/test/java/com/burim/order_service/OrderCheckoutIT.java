@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class OrderCheckoutWireMockTest extends BaseIntegrationTest {
+public class OrderCheckoutIT extends BaseIntegrationTest {
 
     @RegisterExtension
     static WireMockExtension wiremock = WireMockExtension.newInstance()
