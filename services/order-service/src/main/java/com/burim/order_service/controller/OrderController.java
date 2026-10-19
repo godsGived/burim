@@ -10,12 +10,19 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
+
+    @GetMapping("/my")
+    public List<OrderResponse> getMyOrders(@AuthenticationPrincipal Jwt jwt) {
+        return orderService.getUserOrders(jwt.getSubject());
+    }
 
     @PostMapping("/checkout")
     @ResponseStatus(HttpStatus.CREATED)

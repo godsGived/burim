@@ -1,5 +1,6 @@
 package com.burim.order_service;
 
+import com.burim.order_service.entity.Order;
 import com.burim.order_service.entity.OrderStatus;
 import com.burim.order_service.repository.OrderRepository;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -13,6 +14,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.math.BigDecimal;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
@@ -24,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -179,5 +183,27 @@ class OrderCheckoutWireMockTest extends BaseIntegrationTest {
         wiremock.verify(1, postRequestedFor(urlPathMatching("/api/v1/internal/products/reservations/[a-f0-9\\-]+/release")));
         wiremock.verify(0, deleteRequestedFor(urlEqualTo("/api/v1/internal/cart/" + userId)));
         assertThat(orderRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void shouldReturnOnlyCurrentUserOrders() throws Exception {
+        Order ownOrder = orderRepository.save(Order.builder()
+                .userId("order-owner")
+                .status(OrderStatus.PENDING)
+                .totalAmount(new BigDecimal("100.00"))
+                .build());
+
+        orderRepository.save(Order.builder()
+                .userId("another-user")
+                .status(OrderStatus.PENDING)
+                .totalAmount(new BigDecimal("200.00"))
+                .build());
+
+        mockMvc.perform(get("/api/v1/orders/my")
+                        .with(jwt().jwt(b -> b.subject("order-owner"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(ownOrder.getId()))
+                .andExpect(jsonPath("$[0].userId").value("order-owner"));
     }
 }

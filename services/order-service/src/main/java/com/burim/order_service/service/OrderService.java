@@ -11,6 +11,7 @@ import com.burim.order_service.exceptions.EmptyCartException;
 import com.burim.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -80,6 +81,13 @@ public class OrderService {
             productServiceClient.releaseReservation(operationId);
             throw ex;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getUserOrders(String userId) {
+        return orderRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public OrderResponse checkout(String userId) {
