@@ -14,7 +14,9 @@ jobs:
     strategy:
       matrix:
         service:
+          - services/api-gateway
           - services/cart-service
+          - services/notification-service
           - services/order-service
           - services/product-service
           - services/review-service
