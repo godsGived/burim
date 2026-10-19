@@ -40,4 +40,4 @@ app:
       reviews: "product-reviews-topic"
 
 server:
-  port: 8082
+  port: ${SERVER_PORT:8084}
