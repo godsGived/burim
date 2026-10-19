@@ -10,6 +10,9 @@ services:
       KC_HTTP_ENABLED: "true"
     command:
       - "start-dev"
+      - "--import-realm"
+    volumes:
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
     ports:
       - "8180:8080"
 
@@ -104,24 +107,22 @@ services:
     build:
       context: ./services/product-service
     container_name: burim-product-service
-    ports:
-      - "8081:8081"
     environment:
       SERVER_PORT: 8081
       SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/product_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres_password
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
     depends_on:
       - product-db
       - kafka
+      - burim-keycloak
 
   review-service:
     build:
       context: ./services/review-service
     container_name: burim-review-service
-    ports:
-      - "8084:8084"
     environment:
       SERVER_PORT: 8084
       SPRING_DATASOURCE_URL: jdbc:postgresql://review-db:5432/review_db
@@ -138,8 +139,6 @@ services:
     build:
       context: ./services/order-service
     container_name: burim-order-service
-    ports:
-      - "8082:8082"
     environment:
       SERVER_PORT: 8082
       SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order_db
@@ -160,8 +159,6 @@ services:
     build:
       context: ./services/cart-service
     container_name: burim-cart-service
-    ports:
-      - "8083:8083"
     environment:
       SERVER_PORT: 8083
       SPRING_DATA_REDIS_HOST: marketplace-redis
@@ -175,8 +172,6 @@ services:
     build:
       context: ./services/notification-service
     container_name: burim-notification-service
-    ports:
-      - "8086:8086"
     environment:
       SERVER_PORT: 8086
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notification_db
