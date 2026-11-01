@@ -22,7 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<Product> findAllByIdIn(List<Long> ids);
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids ORDER BY p.id ASC")
+    List<Product> findAllByIdIn(@Param("ids") List<Long> ids);
 
     @Modifying
     @Query("UPDATE Product p SET p.stock = p.stock + :quantity WHERE p.id = :productId")

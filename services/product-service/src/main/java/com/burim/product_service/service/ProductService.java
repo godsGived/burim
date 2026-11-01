@@ -101,7 +101,6 @@ public class ProductService {
         productRepository.delete(product);
     }
 
-    @Transactional
     private List<ProductStockSnapshot> deductStock(@Valid List<DeductStockRequest> requests) {
         Map<Long, Integer> requestHM = requests.stream()
                 .collect(Collectors.toMap(
