@@ -56,6 +56,19 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(ReservationConflictException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleReservationConflict(ReservationConflictException ex) {
+        log.warn("Stock reservation conflict: {}", ex.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse<>(
+                        HttpStatus.CONFLICT.value(),
+                        "RESERVATION_CONFLICT",
+                        ex.getMessage()
+                ));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.warn("Order data integrity violation: {}", ex.getMostSpecificCause().getMessage());

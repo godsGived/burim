@@ -144,6 +144,43 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
     }
 
     @Test
+    void shouldReturnConflictWhenReservationConflicts() throws Exception {
+        String userId = "reservation-conflict-user";
+
+        wiremock.stubFor(WireMock.get(urlEqualTo("/api/v1/internal/cart/" + userId))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                            {
+                                "userId": "%s",
+                                "items": [{ "productId": 1, "quantity": 1 }]
+                            }
+                        """.formatted(userId))));
+
+        wiremock.stubFor(WireMock.post(urlEqualTo("/api/v1/internal/products/reserve"))
+                .willReturn(aResponse()
+                        .withStatus(409)
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                            {
+                                "timestamp": "2026-11-01T12:00:00Z",
+                                "status": 409,
+                                "error": "RESERVATION_CONFLICT",
+                                "message": "Stock reservation already exists for operation"
+                            }
+                        """)));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/orders/checkout")
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("RESERVATION_CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Stock reservation already exists for operation"));
+
+        wiremock.verify(0, deleteRequestedFor(urlEqualTo("/api/v1/internal/cart/" + userId)));
+        assertThat(orderRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void shouldReleaseReservationWhenOrderDatabaseSaveFails() throws Exception {
         String userId = "db-failure-user";
 

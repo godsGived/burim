@@ -8,6 +8,7 @@ import com.burim.product_service.exceptions.BrandNotFoundException;
 import com.burim.product_service.exceptions.CategoryNotFoundException;
 import com.burim.product_service.exceptions.InsufficientStockException;
 import com.burim.product_service.exceptions.ProductNotFoundException;
+import com.burim.product_service.exceptions.ReservationConflictException;
 import com.burim.product_service.mapper.ProductMapper;
 import com.burim.product_service.repository.BrandRepository;
 import com.burim.product_service.repository.CategoryRepository;
@@ -16,6 +17,7 @@ import com.burim.product_service.repository.StockReservationRepository;
 import com.burim.product_service.specification.ProductSpecifications;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -199,7 +201,14 @@ public class ProductService {
                         .status(ReservationStatus.RESERVED)
                         .build())
                 .toList();
-        reservationRepository.saveAll(reservations);
+
+        try {
+            reservationRepository.saveAllAndFlush(reservations);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ReservationConflictException(
+                    "Stock reservation already exists for operation " + request.operationId()
+            );
+        }
 
         return snapshots;
     }
