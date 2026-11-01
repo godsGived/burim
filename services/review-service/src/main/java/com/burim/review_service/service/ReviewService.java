@@ -10,6 +10,7 @@ import com.burim.review_service.exceptions.ReviewNotFoundException;
 import com.burim.review_service.mapper.ReviewMapper;
 import com.burim.review_service.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +23,7 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewMapper reviewMapper;
-    private final ReviewEventProducer reviewEventProducer;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ReviewResponse createReview(String userId, CreateReviewRequest reviewRequest) {
@@ -32,8 +33,7 @@ public class ReviewService {
         var review = reviewMapper.toReview(userId, reviewRequest);
         var savedReview = reviewRepository.saveAndFlush(review);
 
-        // Передаем userId 3-м параметром
-        reviewEventProducer.sendReviewEvent(ReviewEvent.created(
+        eventPublisher.publishEvent(ReviewEvent.created(
                 savedReview.getId(),
                 savedReview.getProductId(),
                 savedReview.getUserId(),
@@ -81,7 +81,7 @@ public class ReviewService {
 
         var updatedReview = reviewRepository.saveAndFlush(review);
 
-        reviewEventProducer.sendReviewEvent(ReviewEvent.updated(
+        eventPublisher.publishEvent(ReviewEvent.updated(
                 updatedReview.getId(),
                 updatedReview.getProductId(),
                 updatedReview.getUserId(),
@@ -101,7 +101,7 @@ public class ReviewService {
         }
         reviewRepository.delete(review);
 
-        reviewEventProducer.sendReviewEvent(ReviewEvent.deleted(
+        eventPublisher.publishEvent(ReviewEvent.deleted(
                 review.getId(),
                 review.getProductId(),
                 review.getUserId(),
