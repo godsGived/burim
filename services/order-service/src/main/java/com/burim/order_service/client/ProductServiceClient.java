@@ -63,13 +63,9 @@ public class ProductServiceClient {
     }
 
     public void releaseReservation(UUID operationId) {
-        try {
-            productRestClient.post()
-                    .uri("/api/v1/internal/products/reservations/{operationId}/release", operationId)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (Exception e) {
-            log.error("Failed to release stock reservation for operationId: {}", operationId, e);
-        }
+        productRestClient.post()
+                .uri("/api/v1/internal/products/reservations/{operationId}/release", operationId)
+                .retrieve()
+                .toBodilessEntity();
     }
 }

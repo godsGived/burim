@@ -82,6 +82,54 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleOrderNotFound(OrderNotFoundException ex) {
+        log.warn("Order not found: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse<>(
+                        HttpStatus.NOT_FOUND.value(),
+                        "ORDER_NOT_FOUND",
+                        ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse<>(
+                        HttpStatus.FORBIDDEN.value(),
+                        "ACCESS_DENIED",
+                        ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(OrderStatusConflictException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleOrderStatusConflict(OrderStatusConflictException ex) {
+        log.warn("Order status conflict: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse<>(
+                        HttpStatus.CONFLICT.value(),
+                        "ORDER_STATUS_CONFLICT",
+                        ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleServiceUnavailable(ServiceUnavailableException ex) {
+        log.warn("Service unavailable: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse<>(
+                        HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        "SERVICE_UNAVAILABLE",
+                        ex.getMessage()
+                ));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse<Map<String, String>>> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();

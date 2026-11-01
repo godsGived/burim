@@ -26,16 +26,28 @@ public class OrderController {
 
     @PostMapping("/checkout")
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse checkout(@AuthenticationPrincipal Jwt jwt) {
-        return orderService.checkout(jwt.getSubject());
+    public OrderResponse checkout(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+    ) {
+        return orderService.checkout(jwt.getSubject(), idempotencyKey);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse createOrder(
             @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody CreateOrderRequest request
     ) {
-        return orderService.createOrder(jwt.getSubject(), request);
+        return orderService.createOrder(jwt.getSubject(), idempotencyKey, request);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public OrderResponse cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return orderService.cancelOrder(id, jwt.getSubject());
     }
 }

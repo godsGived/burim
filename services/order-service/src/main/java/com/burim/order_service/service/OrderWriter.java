@@ -5,6 +5,7 @@ import com.burim.order_service.entity.Order;
 import com.burim.order_service.entity.OrderItem;
 import com.burim.order_service.entity.OrderStatus;
 import com.burim.order_service.event.OrderCreatedEvent;
+import com.burim.order_service.event.OrderStatusChangedEvent;
 import com.burim.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +24,7 @@ public class OrderWriter {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public Order create(String userId, List<ProductStockSnapshot> stockResponse) {
+    public Order create(String userId, String idempotencyKey, UUID operationId, List<ProductStockSnapshot> stockResponse) {
         BigDecimal totalAmount = stockResponse.stream()
                 .map(s -> s.price().multiply(BigDecimal.valueOf(s.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -30,6 +32,8 @@ public class OrderWriter {
         Order order = Order.builder()
                 .status(OrderStatus.PENDING)
                 .userId(userId)
+                .idempotencyKey(idempotencyKey)
+                .operationId(operationId)
                 .totalAmount(totalAmount)
                 .build();
 
@@ -44,7 +48,7 @@ public class OrderWriter {
 
         order.addItems(orderItems);
 
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.saveAndFlush(order);
 
         eventPublisher.publishEvent(new OrderCreatedEvent(
                 savedOrder.getId(),
@@ -57,6 +61,22 @@ public class OrderWriter {
                                 item.getUnitPrice()))
                         .toList(),
                 savedOrder.getCreatedAt()
+        ));
+
+        return savedOrder;
+    }
+
+    @Transactional
+    public Order cancel(Order order) {
+        String oldStatus = order.getStatus().name();
+        order.setStatus(OrderStatus.CANCELLED);
+        Order savedOrder = orderRepository.saveAndFlush(order);
+
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                savedOrder.getId(),
+                savedOrder.getUserId(),
+                oldStatus,
+                OrderStatus.CANCELLED.name()
         ));
 
         return savedOrder;

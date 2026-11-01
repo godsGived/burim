@@ -15,11 +15,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -28,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +59,7 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
     @Test
     void shouldSuccessfullyCheckoutCart() throws Exception {
         String userId = "happy-user";
+        String idempotencyKey = UUID.randomUUID().toString();
 
         wiremock.stubFor(WireMock.get(urlEqualTo("/api/v1/internal/cart/" + userId))
                 .willReturn(aResponse()
@@ -84,7 +88,8 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
         wiremock.stubFor(WireMock.delete(urlEqualTo("/api/v1/internal/cart/" + userId))
                 .willReturn(noContent()));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/orders/checkout")
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", idempotencyKey)
                         .with(jwt().jwt(b -> b.subject(userId))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value(userId))
@@ -93,6 +98,60 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
 
         wiremock.verify(1, deleteRequestedFor(urlEqualTo("/api/v1/internal/cart/" + userId)));
         assertThat(orderRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnSameOrderWhenDuplicateCheckoutWithSameIdempotencyKey() throws Exception {
+        String userId = "idempotent-user";
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        wiremock.stubFor(WireMock.get(urlEqualTo("/api/v1/internal/cart/" + userId))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                            {
+                                "userId": "%s",
+                                "items": [{ "productId": 1, "quantity": 1 }]
+                            }
+                        """.formatted(userId))));
+
+        wiremock.stubFor(WireMock.post(urlEqualTo("/api/v1/internal/products/reserve"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""
+                            [
+                                {
+                                    "productId": 1,
+                                    "productName": "Мышь Logitech",
+                                    "price": 50.00,
+                                    "quantity": 1
+                                }
+                            ]
+                        """)));
+
+        wiremock.stubFor(WireMock.delete(urlEqualTo("/api/v1/internal/cart/" + userId))
+                .willReturn(noContent()));
+
+        // First checkout
+        var firstResult = mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        // Second checkout with identical Idempotency-Key
+        var secondResult = mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        assertThat(orderRepository.findAll()).hasSize(1);
+        wiremock.verify(1, postRequestedFor(urlEqualTo("/api/v1/internal/products/reserve")));
+
+        String firstJson = firstResult.getResponse().getContentAsString();
+        String secondJson = secondResult.getResponse().getContentAsString();
+        assertThat(firstJson).isEqualTo(secondJson);
     }
 
     @Test
@@ -130,7 +189,8 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
                             }
                         """)));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/orders/checkout")
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .with(jwt().jwt(b -> b.subject(userId))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("INSUFFICIENT_STOCK"))
@@ -170,7 +230,8 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
                             }
                         """)));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/orders/checkout")
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .with(jwt().jwt(b -> b.subject(userId))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("RESERVATION_CONFLICT"))
@@ -211,15 +272,89 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
         wiremock.stubFor(WireMock.post(urlPathMatching("/api/v1/internal/products/reservations/[a-f0-9\\-]+/release"))
                 .willReturn(noContent()));
 
-        doThrow(new RuntimeException("Database disk failure")).when(orderRepository).save(any());
+        doThrow(new RuntimeException("Database disk failure")).when(orderRepository).saveAndFlush(any());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/orders/checkout")
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .with(jwt().jwt(b -> b.subject(userId))))
                 .andExpect(status().isInternalServerError());
 
         wiremock.verify(1, postRequestedFor(urlPathMatching("/api/v1/internal/products/reservations/[a-f0-9\\-]+/release")));
         wiremock.verify(0, deleteRequestedFor(urlEqualTo("/api/v1/internal/cart/" + userId)));
         assertThat(orderRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void shouldSuccessfullyCancelPendingOrderAndReleaseReservation() throws Exception {
+        String userId = "cancel-user";
+        UUID operationId = UUID.randomUUID();
+
+        Order order = orderRepository.save(Order.builder()
+                .userId(userId)
+                .operationId(operationId)
+                .status(OrderStatus.PENDING)
+                .totalAmount(new BigDecimal("100.00"))
+                .build());
+
+        wiremock.stubFor(WireMock.post(urlEqualTo("/api/v1/internal/products/reservations/" + operationId + "/release"))
+                .willReturn(noContent()));
+
+        // First cancel
+        mockMvc.perform(post("/api/v1/orders/" + order.getId() + "/cancel")
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(OrderStatus.CANCELLED.name()));
+
+        wiremock.verify(1, postRequestedFor(urlEqualTo("/api/v1/internal/products/reservations/" + operationId + "/release")));
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.CANCELLED);
+
+        // Second cancel (idempotent)
+        mockMvc.perform(post("/api/v1/orders/" + order.getId() + "/cancel")
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(OrderStatus.CANCELLED.name()));
+
+        // Verify release was still called only once
+        wiremock.verify(1, postRequestedFor(urlEqualTo("/api/v1/internal/products/reservations/" + operationId + "/release")));
+    }
+
+    @Test
+    void shouldReturn503AndKeepPendingStatusWhenReleaseFailsDuringCancel() throws Exception {
+        String userId = "cancel-fail-user";
+        UUID operationId = UUID.randomUUID();
+
+        Order order = orderRepository.save(Order.builder()
+                .userId(userId)
+                .operationId(operationId)
+                .status(OrderStatus.PENDING)
+                .totalAmount(new BigDecimal("100.00"))
+                .build());
+
+        wiremock.stubFor(WireMock.post(urlEqualTo("/api/v1/internal/products/reservations/" + operationId + "/release"))
+                .willReturn(serverError()));
+
+        mockMvc.perform(post("/api/v1/orders/" + order.getId() + "/cancel")
+                        .with(jwt().jwt(b -> b.subject(userId))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error").value("SERVICE_UNAVAILABLE"));
+
+        // Order remains PENDING
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.PENDING);
+    }
+
+    @Test
+    void shouldReturn403WhenCancellingAnotherUserOrder() throws Exception {
+        Order order = orderRepository.save(Order.builder()
+                .userId("owner-user")
+                .operationId(UUID.randomUUID())
+                .status(OrderStatus.PENDING)
+                .totalAmount(new BigDecimal("100.00"))
+                .build());
+
+        mockMvc.perform(post("/api/v1/orders/" + order.getId() + "/cancel")
+                        .with(jwt().jwt(b -> b.subject("attacker-user"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("ACCESS_DENIED"));
     }
 
     @Test

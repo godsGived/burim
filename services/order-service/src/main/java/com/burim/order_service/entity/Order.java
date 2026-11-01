@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "orders") // "order" — зарезервированное слово в SQL
@@ -31,6 +32,12 @@ public class Order {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
+
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
+    @Column(name = "operation_id")
+    private UUID operationId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
