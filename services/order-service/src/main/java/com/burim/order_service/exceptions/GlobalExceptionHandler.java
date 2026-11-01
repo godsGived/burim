@@ -3,6 +3,7 @@ package com.burim.order_service.exceptions;
 import com.burim.order_service.dto.ErrorResponse;
 import com.burim.order_service.dto.StockShortageDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -52,6 +53,19 @@ public class GlobalExceptionHandler {
                         "PRODUCT_NOT_FOUND",
                         "Requested products not found",
                         ex.getMissingIds() // или ex.getDetails()
+                ));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Order data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse<>(
+                        HttpStatus.CONFLICT.value(),
+                        "DATA_INTEGRITY_VIOLATION",
+                        "Request conflicts with existing data"
                 ));
     }
 
