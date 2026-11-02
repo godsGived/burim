@@ -101,6 +101,15 @@ public class OrderCheckoutIT extends BaseIntegrationTest {
     }
 
     @Test
+    void shouldReturn400WhenIdempotencyKeyIsMissing() throws Exception {
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .with(jwt().jwt(b -> b.subject("no-key-user"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("MISSING_HEADER"))
+                .andExpect(jsonPath("$.message").value("Required header missing: Idempotency-Key"));
+    }
+
+    @Test
     void shouldReturnSameOrderWhenDuplicateCheckoutWithSameIdempotencyKey() throws Exception {
         String userId = "idempotent-user";
         String idempotencyKey = UUID.randomUUID().toString();

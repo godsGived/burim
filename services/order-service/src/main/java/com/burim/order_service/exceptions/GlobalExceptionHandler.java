@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -127,6 +128,17 @@ public class GlobalExceptionHandler {
                         HttpStatus.SERVICE_UNAVAILABLE.value(),
                         "SERVICE_UNAVAILABLE",
                         ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse<Void>> handleMissingHeader(MissingRequestHeaderException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse<>(
+                        HttpStatus.BAD_REQUEST.value(),
+                        "MISSING_HEADER",
+                        "Required header missing: " + ex.getHeaderName()
                 ));
     }
 

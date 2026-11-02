@@ -4,7 +4,6 @@ import com.burim.order_service.client.CartServiceClient;
 import com.burim.order_service.client.ProductServiceClient;
 import com.burim.order_service.dto.*;
 import com.burim.order_service.entity.Order;
-import com.burim.order_service.entity.OrderItem;
 import com.burim.order_service.entity.OrderStatus;
 import com.burim.order_service.exceptions.AccessDeniedException;
 import com.burim.order_service.exceptions.EmptyCartException;
@@ -30,10 +29,6 @@ public class OrderService {
     private final ProductServiceClient productServiceClient;
     private final CartServiceClient cartServiceClient;
     private final OrderWriter orderWriter;
-
-    public OrderResponse createOrder(String userId, CreateOrderRequest request) {
-        return createOrder(userId, null, request);
-    }
 
     public OrderResponse createOrder(String userId, String idempotencyKey, CreateOrderRequest request) {
         if (idempotencyKey != null) {
@@ -77,10 +72,6 @@ public class OrderService {
         return orderRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::mapToResponse)
                 .toList();
-    }
-
-    public OrderResponse checkout(String userId) {
-        return checkout(userId, null);
     }
 
     public OrderResponse checkout(String userId, String idempotencyKey) {
