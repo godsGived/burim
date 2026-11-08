@@ -1,6 +1,7 @@
 package com.burim.review_service.mapper;
 
 import com.burim.review_service.dto.CreateReviewRequest;
+import com.burim.review_service.dto.PublicReviewResponse;
 import com.burim.review_service.dto.ReviewResponse;
 import com.burim.review_service.enitiy.Review;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,20 @@ public class ReviewMapper {
         return new ReviewResponse(
                 review.getId(),
                 review.getUserId(),
+                review.getProductId(),
+                review.getRating(),
+                review.getTitle(),
+                review.getDescription(),
+                review.getAdvantages(),
+                review.getDisadvantages(),
+                review.getCreatedAt(),
+                review.getUpdatedAt()
+        );
+    }
+
+    public PublicReviewResponse toPublicResponse(Review review) {
+        return new PublicReviewResponse(
+                review.getId(),
                 review.getProductId(),
                 review.getRating(),
                 review.getTitle(),

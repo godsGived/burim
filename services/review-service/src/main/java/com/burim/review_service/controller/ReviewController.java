@@ -1,6 +1,7 @@
 package com.burim.review_service.controller;
 
 import com.burim.review_service.dto.CreateReviewRequest;
+import com.burim.review_service.dto.PublicReviewResponse;
 import com.burim.review_service.dto.ReviewResponse;
 import com.burim.review_service.dto.UpdateReviewRequest;
 import com.burim.review_service.service.ReviewService;
@@ -30,7 +31,7 @@ public class ReviewController {
     }
 
     @GetMapping("/products/{productId}")
-    public List<ReviewResponse> getProductReviews(@PathVariable Long productId) {
+    public List<PublicReviewResponse> getProductReviews(@PathVariable Long productId) {
         return reviewService.getProductReviews(productId);
     }
 
@@ -43,7 +44,7 @@ public class ReviewController {
     }
 
     @GetMapping("/{id}")
-    public ReviewResponse getReviewById(@PathVariable Long id) {
+    public PublicReviewResponse getReviewById(@PathVariable Long id) {
         return reviewService.getReviewById(id);
     }
 

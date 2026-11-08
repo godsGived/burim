@@ -52,7 +52,6 @@ public class NotificationKafkaListener {
         );
     }
 
-    // TODO: Connect with order-service status update flow once PATCH /orders/{id}/status is implemented
     @KafkaListener(topics = "order-status-topic", groupId = "notification-service-group")
     public void handleOrderStatusChanged(OrderStatusChangedEvent event) {
         log.info("Received status change event for order {}", event.orderId());

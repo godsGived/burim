@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -135,6 +136,89 @@ public class ReviewControllerIT extends BaseIntegrationTest {
         var userReview = reviewRepository.findAllByUserId("user-123");
 
         assertThat(userReview).hasSize(1);
+    }
+
+    @Test
+    void getProductReviews_whenUnauthenticated_ShouldReturnReviewsWithoutUserId() throws Exception {
+        Review review = reviewRepository.saveAndFlush(Review.builder()
+                .userId("private-reviewer")
+                .productId(1L)
+                .rating(4)
+                .title("Public title")
+                .description("Public description")
+                .build());
+
+        mockMvc.perform(get("/api/v1/reviews/products/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(review.getId()))
+                .andExpect(jsonPath("$[0].productId").value(1))
+                .andExpect(jsonPath("$[0].rating").value(4))
+                .andExpect(jsonPath("$[0].userId").doesNotExist());
+    }
+
+    @Test
+    void getReviewById_whenUnauthenticated_ShouldReturnReviewWithoutUserId() throws Exception {
+        Review review = reviewRepository.saveAndFlush(Review.builder()
+                .userId("private-reviewer")
+                .productId(1L)
+                .rating(5)
+                .title("Public title")
+                .description("Public description")
+                .build());
+
+        mockMvc.perform(get("/api/v1/reviews/" + review.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(review.getId()))
+                .andExpect(jsonPath("$.productId").value(1))
+                .andExpect(jsonPath("$.userId").doesNotExist());
+    }
+
+    @Test
+    void getMyReviews_whenUnauthenticated_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/reviews/my"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getMyReviews_whenAuthenticated_ShouldReturnOnlyCurrentUserReviews() throws Exception {
+        reviewRepository.saveAndFlush(Review.builder()
+                .userId("current-user")
+                .productId(1L)
+                .rating(5)
+                .title("Mine")
+                .description("My review")
+                .build());
+        reviewRepository.saveAndFlush(Review.builder()
+                .userId("another-user")
+                .productId(1L)
+                .rating(3)
+                .title("Not mine")
+                .description("Another review")
+                .build());
+
+        mockMvc.perform(get("/api/v1/reviews/my")
+                        .with(jwt().jwt(builder -> builder.subject("current-user"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].userId").value("current-user"));
+    }
+
+    @Test
+    void createReview_whenUnauthenticated_ShouldReturn401() throws Exception {
+        CreateReviewRequest reviewRequest = new CreateReviewRequest(
+                1L,
+                5,
+                "Everything's good!",
+                "I use this stuff and it's perfect. I recommend it.",
+                "price",
+                "none"
+        );
+
+        mockMvc.perform(post("/api/v1/reviews")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reviewRequest)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

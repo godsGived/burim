@@ -1,6 +1,7 @@
 package com.burim.review_service.service;
 
 import com.burim.review_service.dto.CreateReviewRequest;
+import com.burim.review_service.dto.PublicReviewResponse;
 import com.burim.review_service.dto.ReviewResponse;
 import com.burim.review_service.dto.UpdateReviewRequest;
 import com.burim.review_service.dto.event.ReviewEvent;
@@ -44,9 +45,9 @@ public class ReviewService {
         return reviewMapper.toResponse(savedReview);
     }
 
-    public List<ReviewResponse> getProductReviews(Long productId) {
+    public List<PublicReviewResponse> getProductReviews(Long productId) {
         return reviewRepository.findAllByProductId(productId).stream()
-                .map(reviewMapper::toResponse)
+                .map(reviewMapper::toPublicResponse)
                 .toList();
     }
 
@@ -56,10 +57,10 @@ public class ReviewService {
                 .toList();
     }
 
-    public ReviewResponse getReviewById(Long id) {
+    public PublicReviewResponse getReviewById(Long id) {
         var review = reviewRepository.findById(id)
                 .orElseThrow(() -> new ReviewNotFoundException("Review not found with id: " + id));
-        return reviewMapper.toResponse(review);
+        return reviewMapper.toPublicResponse(review);
     }
 
     @Transactional
