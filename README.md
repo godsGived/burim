@@ -6,56 +6,33 @@
 ![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0-6DB33F)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-Burim is a microservice marketplace built to practice distributed backend patterns: REST, Kafka events, Redis, PostgreSQL, Keycloak, Testcontainers, MCP and tool calling.
+Burim is a learning e-commerce backend built as a set of Spring Boot microservices. It covers the customer path from catalog to order and review, and adds an AI assistant that can query live product data through MCP tools.
+
+## What is Burim?
+
+Burim is not a production marketplace. It is a portfolio project for practicing the backend patterns that appear in real distributed systems: service boundaries, synchronous REST, asynchronous Kafka events, idempotency, stock reservations, JWT security and integration testing.
+
+A user can browse the catalog, manage a Redis-backed cart, checkout with an `Idempotency-Key`, cancel an order, leave a review, receive notifications and ask an AI assistant about products and reviews.
+
+The AI assistant is read-only: it can search products, inspect stock and read reviews through MCP tools, but it cannot place or cancel orders.
+
+What the project demonstrates:
+
+- service-per-domain architecture with PostgreSQL per service;
+- REST between services and Kafka for asynchronous events;
+- Keycloak/JWT security, Flyway migrations and Testcontainers;
+- a separate MCP server with Streamable HTTP and read-only tools;
+- Spring AI `ChatClient` + MCP client integration.
 
 > Current status: backend v1.0 and AI chat/MCP are implemented.
 
 ## Architecture
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/architecture-dark.svg">
-    <img src="docs/architecture/architecture-light.png" alt="Burim architecture" width="100%">
-  </picture>
-</p>
+[![Burim C4 containers](docs/architecture/burim-c4.png)](https://excalidraw.com/#json=-SfFuz7o_NnAiw_HTm4lY,YBiH3yaI859gVswZ5ULfcg)
 
-<sub>Full-size: [light SVG](docs/architecture/architecture-light.svg) · [dark SVG](docs/architecture/architecture-dark.svg)</sub>
+<sub>[Open in Excalidraw](https://excalidraw.com/#json=-SfFuz7o_NnAiw_HTm4lY,YBiH3yaI859gVswZ5ULfcg) · editable source: [`docs/architecture/burim-c4.excalidraw`](docs/architecture/burim-c4.excalidraw)</sub>
 
-```mermaid
-flowchart LR
-  Client[Client] --> Gateway[API Gateway :8080]
-
-  Gateway --> Product[Product :8081]
-  Gateway --> Cart[Cart :8083]
-  Gateway --> Order[Order :8082]
-  Gateway --> Review[Review :8084]
-  Gateway --> Notification[Notification :8086]
-  Gateway --> AI[AI Service :8087]
-
-  Order -->|internal REST| Cart
-  Order -->|reserve stock| Product
-
-  Review -.->|product-reviews-topic| Kafka[(Kafka)]
-  Order -.->|order-created-topic| Kafka
-  Order -.->|order-status-topic| Kafka
-  Kafka -.->|rating update| Product
-  Kafka -.->|notifications| Notification
-
-  AI -->|MCP Streamable HTTP| MCP[MCP Server :8088]
-  MCP -->|public REST| Product
-  MCP -->|public REST| Review
-  AI -->|OpenAI-compatible| DeepSeek[DeepSeek API]
-  External[MCP clients: OpenCode / Cursor / Claude] -->|/mcp| MCP
-
-  Cart --> Redis[(Redis)]
-  Product --> PG[(PostgreSQL)]
-  Order --> PG
-  Review --> PG
-  Notification --> PG
-  Keycloak[Keycloak :8180] -.->|JWT| Product
-
-  %% MCP is internal and is not routed through the gateway.
-```
+Blue — synchronous REST. Amber dashed — Kafka events. Green — storage. Dotted — JWT/JWKS.
 
 JWT is validated by each service, not by the gateway. Public reads are available for products, product reviews and single reviews.
 
