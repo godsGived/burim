@@ -36,6 +36,11 @@ spring:
               predicates:
                 - Path=/api/v1/notifications/**
 
+            - id: ai-service
+              uri: ${SERVICES_AI_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/ai/**
+
             # --- OpenAPI документация микросервисов ---
             - id: product-docs
               uri: ${SERVICES_PRODUCT_URL:http://localhost:8081}
@@ -72,6 +77,13 @@ spring:
               filters:
                 - SetPath=/v3/api-docs
 
+            - id: ai-docs
+              uri: ${SERVICES_AI_URL:http://localhost:8087}
+              predicates:
+                - Path=/docs/ai-service/v3/api-docs
+              filters:
+                - SetPath=/v3/api-docs
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -86,6 +98,8 @@ springdoc:
         url: /docs/review-service/v3/api-docs
       - name: 5. Notification Service
         url: /docs/notification-service/v3/api-docs
+      - name: 6. AI Service
+        url: /docs/ai-service/v3/api-docs
 
 management:
   endpoints:

@@ -186,6 +186,33 @@ services:
       - burim-keycloak
       - product-service
 
+  mcp-server:
+    build:
+      context: ./services/mcp-server
+    container_name: burim-mcp-server
+    ports:
+      - "127.0.0.1:8088:8088"
+    environment:
+      SERVER_PORT: 8088
+      SERVICES_PRODUCT_URL: http://burim-product-service:8081
+      SERVICES_REVIEW_URL: http://burim-review-service:8084
+    depends_on:
+      - product-service
+      - review-service
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+    container_name: burim-ai-service
+    environment:
+      SERVER_PORT: 8087
+      SPRING_AI_OPENAI_API_KEY: ${SPRING_AI_OPENAI_API_KEY}
+      MCP_SERVER_URL: http://burim-mcp-server:8088
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://burim-keycloak:8080/realms/burim/protocol/openid-connect/certs
+    depends_on:
+      - mcp-server
+      - burim-keycloak
+
   api-gateway:
     build:
       context: ./services/api-gateway
@@ -199,12 +226,14 @@ services:
       SERVICES_CART_URL: http://burim-cart-service:8083
       SERVICES_REVIEW_URL: http://burim-review-service:8084
       SERVICES_NOTIFICATION_URL: http://burim-notification-service:8086
+      SERVICES_AI_URL: http://burim-ai-service:8087
     depends_on:
       - product-service
       - order-service
       - cart-service
       - review-service
       - notification-service
+      - ai-service
 
 volumes:
   product_postgres_data:
