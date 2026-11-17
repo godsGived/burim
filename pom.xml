@@ -16,5 +16,7 @@
         <module>services/review-service</module>
         <module>services/api-gateway</module>
         <module>services/notification-service</module>
+        <module>services/ai-service</module>
+        <module>services/mcp-server</module>
     </modules>
 </project>

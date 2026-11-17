@@ -21,6 +21,8 @@ jobs:
           - services/order-service
           - services/product-service
           - services/review-service
+          - services/ai-service
+          - services/mcp-server
 
     steps:
       - name: Checkout repository
