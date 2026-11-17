@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "burim": {
+        "type": "remote",
+        "url": "http://localhost:8088/mcp",
+        "oauth": false
+      }
+    }
+  }
+}

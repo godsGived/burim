@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: mcp-server
+
+  ai:
+    mcp:
+      server:
+        name: burim-mcp-server
+        version: 1.0.0
+        protocol: STREAMABLE
+        type: SYNC
+        request-timeout: 20s
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        streamable-http:
+          mcp-endpoint: /mcp
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health, info"
+
+server:
+  port: ${SERVER_PORT:8088}
+
+services:
+  product:
+    url: ${SERVICES_PRODUCT_URL:http://localhost:8081}
+  review:
+    url: ${SERVICES_REVIEW_URL:http://localhost:8084}
