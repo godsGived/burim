@@ -6,12 +6,34 @@
 ![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0-6DB33F)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
+Burim is a learning e-commerce backend built as a set of Spring Boot microservices. It covers the customer path from catalog to order and review, and adds an AI assistant that can query live product data through MCP tools.
+
+## What is Burim?
+
+Burim is not a production marketplace. It is a portfolio project for practicing the backend patterns that appear in real distributed systems: service boundaries, synchronous REST, asynchronous Kafka events, idempotency, stock reservations, JWT security and integration testing.
+
+A user can browse the catalog, manage a Redis-backed cart, checkout with an `Idempotency-Key`, cancel an order, leave a review, receive notifications and ask an AI assistant about products and reviews.
+
+The AI assistant is read-only: it can search products, inspect stock and read reviews through MCP tools, but it cannot place or cancel orders.
+
+What the project demonstrates:
+
+- service-per-domain architecture with PostgreSQL per service;
+- REST between services and Kafka for asynchronous events;
+- Keycloak/JWT security, Flyway migrations and Testcontainers;
+- a separate MCP server with Streamable HTTP and read-only tools;
+- Spring AI `ChatClient` + MCP client integration.
 Burim is a microservice marketplace built to practice distributed backend patterns: REST, Kafka events, Redis, PostgreSQL, Keycloak, Testcontainers, MCP and tool calling.
 
 > Current status: backend v1.0 and AI chat/MCP are implemented.
 
 ## Architecture
 
+[![Burim C4 containers](docs/architecture/burim-c4.png)](https://excalidraw.com/#json=-SfFuz7o_NnAiw_HTm4lY,YBiH3yaI859gVswZ5ULfcg)
+
+<sub>[Open in Excalidraw](https://excalidraw.com/#json=-SfFuz7o_NnAiw_HTm4lY,YBiH3yaI859gVswZ5ULfcg) · editable source: [`docs/architecture/burim-c4.excalidraw`](docs/architecture/burim-c4.excalidraw)</sub>
+
+Blue — synchronous REST. Amber dashed — Kafka events. Green — storage. Dotted — JWT/JWKS.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/architecture-dark.svg">
