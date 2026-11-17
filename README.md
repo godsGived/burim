@@ -23,6 +23,7 @@ What the project demonstrates:
 - Keycloak/JWT security, Flyway migrations and Testcontainers;
 - a separate MCP server with Streamable HTTP and read-only tools;
 - Spring AI `ChatClient` + MCP client integration.
+Burim is a microservice marketplace built to practice distributed backend patterns: REST, Kafka events, Redis, PostgreSQL, Keycloak, Testcontainers, MCP and tool calling.
 
 > Current status: backend v1.0 and AI chat/MCP are implemented.
 
@@ -33,6 +34,50 @@ What the project demonstrates:
 <sub>[Open in Excalidraw](https://excalidraw.com/#json=-SfFuz7o_NnAiw_HTm4lY,YBiH3yaI859gVswZ5ULfcg) · editable source: [`docs/architecture/burim-c4.excalidraw`](docs/architecture/burim-c4.excalidraw)</sub>
 
 Blue — synchronous REST. Amber dashed — Kafka events. Green — storage. Dotted — JWT/JWKS.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/architecture-dark.svg">
+    <img src="docs/architecture/architecture-light.png" alt="Burim architecture" width="100%">
+  </picture>
+</p>
+
+<sub>Full-size: [light SVG](docs/architecture/architecture-light.svg) · [dark SVG](docs/architecture/architecture-dark.svg)</sub>
+
+```mermaid
+flowchart LR
+  Client[Client] --> Gateway[API Gateway :8080]
+
+  Gateway --> Product[Product :8081]
+  Gateway --> Cart[Cart :8083]
+  Gateway --> Order[Order :8082]
+  Gateway --> Review[Review :8084]
+  Gateway --> Notification[Notification :8086]
+  Gateway --> AI[AI Service :8087]
+
+  Order -->|internal REST| Cart
+  Order -->|reserve stock| Product
+
+  Review -.->|product-reviews-topic| Kafka[(Kafka)]
+  Order -.->|order-created-topic| Kafka
+  Order -.->|order-status-topic| Kafka
+  Kafka -.->|rating update| Product
+  Kafka -.->|notifications| Notification
+
+  AI -->|MCP Streamable HTTP| MCP[MCP Server :8088]
+  MCP -->|public REST| Product
+  MCP -->|public REST| Review
+  AI -->|OpenAI-compatible| DeepSeek[DeepSeek API]
+  External[MCP clients: OpenCode / Cursor / Claude] -->|/mcp| MCP
+
+  Cart --> Redis[(Redis)]
+  Product --> PG[(PostgreSQL)]
+  Order --> PG
+  Review --> PG
+  Notification --> PG
+  Keycloak[Keycloak :8180] -.->|JWT| Product
+
+  %% MCP is internal and is not routed through the gateway.
+```
 
 JWT is validated by each service, not by the gateway. Public reads are available for products, product reviews and single reviews.
 
